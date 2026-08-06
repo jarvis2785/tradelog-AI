@@ -9,6 +9,7 @@ import { useToast } from "@/components/Toast";
 import { generateReportPdf } from "@/lib/generatePdf";
 import WeekSelector from "@/components/report/WeekSelector";
 import ReportView from "@/components/report/ReportView";
+import RegenerateConfirmDialog from "@/components/report/RegenerateConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import { Skeleton } from "@/components/Skeleton";
 
@@ -23,6 +24,8 @@ export default function ReportPage() {
   const [weekTrades, setWeekTrades] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +81,28 @@ export default function ReportPage() {
     }
   }
 
+  async function handleRegenerate() {
+    setShowRegenerateConfirm(false);
+    setRegenerating(true);
+    try {
+      const res = await fetch("/api/generate-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ week_start: selectedWeek.start, week_end: selectedWeek.end }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Something went wrong. Please try again.");
+      }
+      setReport(data.report);
+      toast.success("Report regenerated successfully");
+    } catch (err) {
+      toast.error(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
   function handleDownloadPdf() {
     if (!report) return;
     try {
@@ -91,7 +116,18 @@ export default function ReportPage() {
     <div className="flex flex-col gap-5 pb-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-h1 text-text-primary">Weekly Report</h1>
-        <WeekSelector weeks={weeks} selectedIndex={selectedIndex} onChange={setSelectedIndex} />
+        <div className="flex items-center gap-3">
+          <WeekSelector weeks={weeks} selectedIndex={selectedIndex} onChange={setSelectedIndex} />
+          {!loading && report && !regenerating && (
+            <button
+              onClick={() => setShowRegenerateConfirm(true)}
+              className="btn-outline-accent h-11 px-4 shrink-0"
+            >
+              <RefreshCw size={16} />
+              Regenerate Report
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -99,6 +135,18 @@ export default function ReportPage() {
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-40 w-full" />
+        </div>
+      ) : regenerating ? (
+        <div className="card">
+          <div className="flex flex-col items-center gap-4 py-10">
+            <p className="text-body text-text-secondary flex items-center gap-2">
+              <RefreshCw size={14} className="animate-spin text-accent" />
+              Regenerating report...
+            </p>
+            <div className="h-1.5 w-full max-w-xs bg-white/[0.06] rounded-full overflow-hidden">
+              <div className="h-full w-1/3 bg-accent rounded-full animate-[shimmer_1.2s_ease-in-out_infinite]" />
+            </div>
+          </div>
         </div>
       ) : report ? (
         <>
@@ -153,6 +201,14 @@ export default function ReportPage() {
             )}
           </div>
         </div>
+      )}
+
+      {showRegenerateConfirm && (
+        <RegenerateConfirmDialog
+          regenerating={regenerating}
+          onCancel={() => setShowRegenerateConfirm(false)}
+          onConfirm={handleRegenerate}
+        />
       )}
     </div>
   );

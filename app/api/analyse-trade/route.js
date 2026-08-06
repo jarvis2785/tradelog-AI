@@ -122,7 +122,7 @@ export async function POST(request) {
       net_pnl: grossPnl,
       screenshot_url: finalScreenshotUrl,
       description,
-      mistake_types: analysis.mistake_types || [],
+      mistake_types: (analysis.mistake_types || []).map((m) => String(m).trim().toLowerCase()),
       rule_broken: !!analysis.rule_broken,
       ai_analysis: analysis.ai_analysis || "",
       entry_time: trade.entry_time || null,

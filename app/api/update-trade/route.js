@@ -95,7 +95,7 @@ export async function PATCH(request) {
       gross_pnl: grossPnl,
       net_pnl: grossPnl,
       description,
-      mistake_types: analysis.mistake_types || [],
+      mistake_types: (analysis.mistake_types || []).map((m) => String(m).trim().toLowerCase()),
       rule_broken: !!analysis.rule_broken,
       ai_analysis: analysis.ai_analysis || "",
       entry_time: trade.entry_time || null,
