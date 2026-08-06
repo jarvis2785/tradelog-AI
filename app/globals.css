@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0a;
+  --surface: #111111;
+  --border: #1f1f1f;
+  --border-hover: #2f2f2f;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  background: var(--background);
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.35);
+  color: #ffffff;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f1f1f;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2f2f2f;
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-border rounded-card p-5 transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply hover:border-border-hover hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+
+  .stat-card {
+    @apply relative overflow-hidden rounded-card border border-border p-5;
+    background: linear-gradient(180deg, #111111 0%, #0f0f0f 100%);
+  }
+
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-medium rounded-control px-5 py-2.5 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 bg-transparent border border-border-hover hover:bg-[#1a1a1a] text-text-primary font-medium rounded-control px-5 py-2.5 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+  }
+
+  .input-field {
+    @apply w-full bg-surface border border-border rounded-control px-3.5 py-2.5 text-body text-text-primary placeholder:text-text-muted outline-none transition-colors duration-150 focus:border-accent;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-small font-medium leading-none;
+  }
+
+  .badge-profit {
+    @apply badge bg-profit/10 text-profit;
+  }
+
+  .badge-loss {
+    @apply badge bg-loss/10 text-loss;
+  }
+
+  .badge-rule-broken {
+    @apply badge bg-loss text-white;
+  }
+
+  .badge-neutral {
+    @apply badge bg-white/5 text-text-secondary;
+  }
+
+  .skeleton {
+    @apply rounded-control bg-[#151515] relative overflow-hidden;
+    background-image: linear-gradient(
+      90deg,
+      #151515 25%,
+      #1c1c1c 37%,
+      #151515 63%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
