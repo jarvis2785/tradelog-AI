@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAnthropicClient, CLAUDE_MODEL, parseClaudeJson } from "@/lib/anthropic";
 import { supabase, TRADES_TABLE } from "@/lib/supabase";
 
+export const runtime = "nodejs";
+
 function buildPrompt(description, trade, rulesBrokenDetail) {
   const brokenRulesLine =
     rulesBrokenDetail && rulesBrokenDetail.length > 0

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabase, TRADES_TABLE, SCREENSHOTS_BUCKET } from "@/lib/supabase";
 
+export const runtime = "nodejs";
+
 function extractStoragePath(screenshotUrl) {
   try {
     const url = new URL(screenshotUrl);

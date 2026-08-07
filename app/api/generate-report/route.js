@@ -3,6 +3,8 @@ import { getAnthropicClient, CLAUDE_MODEL, stripJsonFences } from "@/lib/anthrop
 import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE } from "@/lib/supabase";
 import { toDDMMYYYY } from "@/lib/utils";
 
+export const runtime = "nodejs";
+
 function buildPrompt(trades, chargesText) {
   return `You are an AI trading coach generating a weekly performance report for Umesh, an intraday equity trader.
 

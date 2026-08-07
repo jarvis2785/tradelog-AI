@@ -3,6 +3,8 @@ import { randomUUID } from "crypto";
 import { getAnthropicClient, CLAUDE_MODEL, parseClaudeJson } from "@/lib/anthropic";
 import { supabase, TRADES_TABLE, SCREENSHOTS_BUCKET } from "@/lib/supabase";
 
+export const runtime = "nodejs";
+
 function buildPrompt(description, trade, rulesBrokenDetail) {
   const brokenRulesLine =
     rulesBrokenDetail && rulesBrokenDetail.length > 0
@@ -71,6 +73,14 @@ async function uploadScreenshot(screenshot) {
 
 export async function POST(request) {
   try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error("analyse-trade error: ANTHROPIC_API_KEY not configured");
+      return NextResponse.json(
+        { error: "ANTHROPIC_API_KEY not configured" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { trade, description, screenshot, screenshot_url, rules_broken_detail } = body;
 
@@ -157,7 +167,13 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, trade: savedTrade });
   } catch (err) {
-    console.error("analyse-trade error:", err);
+    console.error("analyse-trade error:", {
+      message: err?.message,
+      name: err?.name,
+      status: err?.status,
+      stack: err?.stack,
+      response: err?.error ?? err?.response?.data,
+    });
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 }
