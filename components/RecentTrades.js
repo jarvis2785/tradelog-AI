@@ -31,7 +31,7 @@ export default function RecentTrades({ trades }) {
             {trades.map((t) => (
               <tr
                 key={t.id}
-                className="border-b border-border last:border-0 hover:bg-white/[0.03] transition-colors"
+                className="border-b border-border last:border-0 hover:bg-overlay/[0.03] transition-colors"
               >
                 <td className="py-3 pr-4 text-body text-text-secondary whitespace-nowrap">
                   {toDDMMYYYY(t.date)}
@@ -42,10 +42,10 @@ export default function RecentTrades({ trades }) {
                 <td className="py-3 pr-4">
                   <span
                     className={`font-mono text-body font-semibold ${
-                      Number(t.net_pnl) >= 0 ? "text-profit" : "text-loss"
+                      Number(t.overall_pnl) >= 0 ? "text-profit" : "text-loss"
                     }`}
                   >
-                    {formatCurrency(t.net_pnl)}
+                    {formatCurrency(t.overall_pnl)}
                   </span>
                 </td>
                 <td className="py-3 pr-4">
@@ -85,10 +85,10 @@ export default function RecentTrades({ trades }) {
               </div>
               <span
                 className={`font-mono text-body font-semibold ${
-                  Number(t.net_pnl) >= 0 ? "text-profit" : "text-loss"
+                  Number(t.overall_pnl) >= 0 ? "text-profit" : "text-loss"
                 }`}
               >
-                {formatCurrency(t.net_pnl)}
+                {formatCurrency(t.overall_pnl)}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 mt-2.5">

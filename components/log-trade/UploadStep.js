@@ -51,7 +51,7 @@ export default function UploadStep({
               : "border-border hover:border-border-hover"
           )}
         >
-          <div className="w-11 h-11 rounded-full bg-white/[0.04] flex items-center justify-center">
+          <div className="w-11 h-11 rounded-full bg-overlay/[0.04] flex items-center justify-center">
             <UploadCloud size={20} className="text-text-secondary" />
           </div>
           <p className="text-body text-text-secondary">

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { FileBarChart, Download, RefreshCw, Sparkles } from "lucide-react";
-import { supabase, TRADES_TABLE, REPORTS_TABLE } from "@/lib/supabase";
+import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE } from "@/lib/supabase";
 import { getLastNWeeks } from "@/lib/utils";
 import { useToast } from "@/components/Toast";
 import { generateReportPdf } from "@/lib/generatePdf";
@@ -22,6 +22,7 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState(null);
   const [weekTrades, setWeekTrades] = useState([]);
+  const [weekCharges, setWeekCharges] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
@@ -33,7 +34,7 @@ export default function ReportPage() {
     async function load() {
       setLoading(true);
       setError(null);
-      const [reportRes, tradesRes] = await Promise.all([
+      const [reportRes, tradesRes, chargesRes] = await Promise.all([
         supabase
           .from(REPORTS_TABLE)
           .select("*")
@@ -44,11 +45,17 @@ export default function ReportPage() {
           .select("*")
           .gte("date", selectedWeek.start)
           .lte("date", selectedWeek.end),
+        supabase
+          .from(CHARGES_TABLE)
+          .select("*")
+          .gte("date", selectedWeek.start)
+          .lte("date", selectedWeek.end),
       ]);
 
       if (cancelled) return;
       setReport(reportRes.data || null);
       setWeekTrades(tradesRes.data || []);
+      setWeekCharges(chargesRes.data || []);
       setLoading(false);
     }
 
@@ -106,7 +113,7 @@ export default function ReportPage() {
   function handleDownloadPdf() {
     if (!report) return;
     try {
-      generateReportPdf(report, weekTrades);
+      generateReportPdf(report, weekTrades, weekCharges);
     } catch (err) {
       toast.error("Could not generate PDF. Please try again.");
     }
@@ -143,14 +150,14 @@ export default function ReportPage() {
               <RefreshCw size={14} className="animate-spin text-accent" />
               Regenerating report...
             </p>
-            <div className="h-1.5 w-full max-w-xs bg-white/[0.06] rounded-full overflow-hidden">
+            <div className="h-1.5 w-full max-w-xs bg-overlay/[0.06] rounded-full overflow-hidden">
               <div className="h-full w-1/3 bg-accent rounded-full animate-[shimmer_1.2s_ease-in-out_infinite]" />
             </div>
           </div>
         </div>
       ) : report ? (
         <>
-          <ReportView report={report} trades={weekTrades} />
+          <ReportView report={report} trades={weekTrades} dailyCharges={weekCharges} />
           <motion.button
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -182,7 +189,7 @@ export default function ReportPage() {
                   Analysing {weekTrades.length} trade{weekTrades.length !== 1 ? "s" : ""} from this
                   week...
                 </p>
-                <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-overlay/[0.06] rounded-full overflow-hidden">
                   <div className="h-full w-1/3 bg-accent rounded-full animate-[shimmer_1.2s_ease-in-out_infinite]" />
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2 } from "lucide-react";
 import { calculateRiskReward } from "@/lib/utils";
 import { MistakePill, RuleBrokenBadge } from "@/components/Badge";
+import RulesChecklist from "@/components/log-trade/RulesChecklist";
 
 const FIELD_LABEL = "block text-small text-text-secondary mb-1.5";
 
@@ -16,7 +17,7 @@ function toEditable(trade) {
     quantity: trade.quantity ?? "",
     buy_avg_price: trade.buy_avg_price ?? "",
     sell_avg_price: trade.sell_avg_price ?? "",
-    gross_pnl: trade.gross_pnl ?? "",
+    overall_pnl: trade.overall_pnl ?? "",
     target_price: trade.target_price ?? "",
     stop_loss_price: trade.stop_loss_price ?? "",
     entry_time: trade.entry_time || "",
@@ -27,6 +28,7 @@ function toEditable(trade) {
 
 export default function EditTradeModal({ trade, onClose, onSave }) {
   const [form, setForm] = useState(() => toEditable(trade));
+  const [rulesBrokenDetail, setRulesBrokenDetail] = useState(trade.rules_broken_detail || []);
   const [saving, setSaving] = useState(false);
   const autoCalcRef = useRef(true);
 
@@ -34,9 +36,9 @@ export default function EditTradeModal({ trade, onClose, onSave }) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleGrossPnlChange(value) {
+  function handleOverallPnlChange(value) {
     autoCalcRef.current = false;
-    update("gross_pnl", value);
+    update("overall_pnl", value);
   }
 
   const rr = calculateRiskReward(form.buy_avg_price, form.target_price, form.stop_loss_price);
@@ -48,7 +50,7 @@ export default function EditTradeModal({ trade, onClose, onSave }) {
     if (!valid || saving) return;
     setSaving(true);
     try {
-      await onSave({ id: trade.id, ...form });
+      await onSave({ id: trade.id, ...form, rules_broken_detail: rulesBrokenDetail });
     } finally {
       setSaving(false);
     }
@@ -87,7 +89,7 @@ export default function EditTradeModal({ trade, onClose, onSave }) {
 
           <div className="p-5 flex flex-col gap-5">
             {(trade.mistake_types?.length > 0 || trade.rule_broken) && (
-              <div className="rounded-control border border-border bg-white/[0.02] px-3.5 py-3">
+              <div className="rounded-control border border-border bg-overlay/[0.02] px-3.5 py-3">
                 <p className="text-small text-text-muted mb-2">
                   Current tags (will be re-analysed on save)
                 </p>
@@ -178,17 +180,17 @@ export default function EditTradeModal({ trade, onClose, onSave }) {
               </div>
 
               <div>
-                <label className={FIELD_LABEL}>Gross P&L ₹</label>
+                <label className={FIELD_LABEL}>Overall P&L ₹</label>
                 <input
                   type="number"
                   step="0.01"
-                  value={form.gross_pnl}
-                  onChange={(e) => handleGrossPnlChange(e.target.value)}
+                  value={form.overall_pnl}
+                  onChange={(e) => handleOverallPnlChange(e.target.value)}
                   placeholder="0.00"
                   className={`input-field h-11 font-mono ${
-                    Number(form.gross_pnl) < 0
+                    Number(form.overall_pnl) < 0
                       ? "text-loss"
-                      : Number(form.gross_pnl) > 0
+                      : Number(form.overall_pnl) > 0
                       ? "text-profit"
                       : ""
                   }`}
@@ -267,6 +269,11 @@ export default function EditTradeModal({ trade, onClose, onSave }) {
                 disabled={saving}
               />
             </div>
+
+            <RulesChecklist
+              initialBrokenRules={trade.rules_broken_detail || []}
+              onChange={setRulesBrokenDetail}
+            />
 
             <button
               onClick={handleSave}

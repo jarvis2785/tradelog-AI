@@ -5,10 +5,10 @@ import CountUp from "./CountUp";
 import { classNames } from "@/lib/utils";
 
 const BORDER_COLORS = {
-  accent: "#6366f1",
-  profit: "#22c55e",
-  loss: "#ef4444",
-  neutral: "#2f2f2f",
+  accent: "rgb(var(--accent))",
+  profit: "rgb(var(--profit))",
+  loss: "rgb(var(--loss))",
+  neutral: "rgb(var(--border-hover))",
 };
 
 export default function StatCard({
@@ -19,6 +19,7 @@ export default function StatCard({
   trendLabel,
   tone = "accent",
   raw,
+  subLabel,
 }) {
   const borderColor = BORDER_COLORS[tone] || BORDER_COLORS.accent;
   const trendPositive = typeof trend === "number" && trend > 0;
@@ -38,6 +39,9 @@ export default function StatCard({
           <CountUp value={value} formatter={formatter} />
         )}
       </p>
+      {subLabel && (
+        <p className="text-small text-text-muted mt-1 truncate">{subLabel}</p>
+      )}
       {(trend !== undefined && trend !== null) && (
         <div
           className={classNames(

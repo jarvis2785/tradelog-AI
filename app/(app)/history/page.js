@@ -28,8 +28,8 @@ export default function HistoryPage() {
     return trades.filter((t) => {
       if (filters.from && t.date < filters.from) return false;
       if (filters.to && t.date > filters.to) return false;
-      if (filters.pnl === "profit" && !(Number(t.net_pnl) > 0)) return false;
-      if (filters.pnl === "loss" && !(Number(t.net_pnl) < 0)) return false;
+      if (filters.pnl === "profit" && !(Number(t.overall_pnl) > 0)) return false;
+      if (filters.pnl === "loss" && !(Number(t.overall_pnl) < 0)) return false;
       if (filters.mistakeTypes.length > 0) {
         const tradeMistakes = t.mistake_types || [];
         const hasMatch = filters.mistakeTypes.some((m) => tradeMistakes.includes(m));

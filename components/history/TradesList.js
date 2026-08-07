@@ -20,8 +20,8 @@ export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
         av = a.date;
         bv = b.date;
       } else {
-        av = Number(a.net_pnl) || 0;
-        bv = Number(b.net_pnl) || 0;
+        av = Number(a.overall_pnl) || 0;
+        bv = Number(b.overall_pnl) || 0;
       }
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
@@ -76,7 +76,7 @@ export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
               <th className="py-2.5 pr-4 font-medium text-text-muted">Buy Price</th>
               <th className="py-2.5 pr-4 font-medium text-text-muted">Sell Price</th>
               <th className="py-2.5 pr-4">
-                <SortHeader field="pnl">P&L</SortHeader>
+                <SortHeader field="pnl">Overall P&L</SortHeader>
               </th>
               <th className="py-2.5 pr-4 font-medium text-text-muted">Mistakes</th>
               <th className="py-2.5 pr-4 font-medium text-text-muted">Rule Broken</th>
@@ -88,7 +88,7 @@ export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
               <tr
                 key={t.id}
                 onClick={() => onRowClick(t)}
-                className="group border-b border-border last:border-0 hover:bg-white/[0.03] cursor-pointer transition-colors"
+                className="group border-b border-border last:border-0 hover:bg-overlay/[0.03] cursor-pointer transition-colors"
               >
                 <td className="py-3 pr-4 text-body text-text-secondary whitespace-nowrap">
                   {toDDMMYYYY(t.date)}
@@ -108,10 +108,10 @@ export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
                 <td className="py-3 pr-4">
                   <span
                     className={`font-mono text-body font-semibold ${
-                      Number(t.net_pnl) >= 0 ? "text-profit" : "text-loss"
+                      Number(t.overall_pnl) >= 0 ? "text-profit" : "text-loss"
                     }`}
                   >
-                    {formatCurrency(t.net_pnl)}
+                    {formatCurrency(t.overall_pnl)}
                   </span>
                 </td>
                 <td className="py-3 pr-4">
@@ -163,7 +163,7 @@ export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
           <div
             key={t.id}
             onClick={() => onRowClick(t)}
-            className="border border-border rounded-control p-3.5 active:bg-white/[0.03] transition-colors"
+            className="border border-border rounded-control p-3.5 active:bg-overlay/[0.03] transition-colors"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -176,10 +176,10 @@ export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
               </div>
               <span
                 className={`font-mono text-body font-semibold ${
-                  Number(t.net_pnl) >= 0 ? "text-profit" : "text-loss"
+                  Number(t.overall_pnl) >= 0 ? "text-profit" : "text-loss"
                 }`}
               >
-                {formatCurrency(t.net_pnl)}
+                {formatCurrency(t.overall_pnl)}
               </span>
             </div>
             <div className="flex items-center justify-between mt-2.5">

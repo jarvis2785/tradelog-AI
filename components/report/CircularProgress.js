@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export default function CircularProgress({ percent, size = 120, stroke = 10, color = "#6366f1" }) {
+export default function CircularProgress({ percent, size = 120, stroke = 10, color = "rgb(var(--accent))" }) {
   const [animated, setAnimated] = useState(0);
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -22,7 +22,7 @@ export default function CircularProgress({ percent, size = 120, stroke = 10, col
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#1f1f1f"
+          stroke="rgb(var(--border-color))"
           strokeWidth={stroke}
         />
         <circle

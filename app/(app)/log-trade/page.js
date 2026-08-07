@@ -18,7 +18,7 @@ function blankTrade() {
     buy_avg_price: "",
     sell_avg_price: "",
     ltp: "",
-    gross_pnl: "",
+    overall_pnl: "",
     target_price: "",
     stop_loss_price: "",
     entry_time: "",
@@ -52,6 +52,7 @@ export default function LogTradePage() {
 
   const [trades, setTrades] = useState([]);
   const [description, setDescription] = useState("");
+  const [rulesBrokenDetail, setRulesBrokenDetail] = useState([]);
   const [saving, setSaving] = useState(false);
 
   const handleFileSelect = useCallback(async (selectedFile) => {
@@ -99,7 +100,7 @@ export default function LogTradePage() {
         buy_avg_price: t.buy_avg_price ?? "",
         sell_avg_price: t.sell_avg_price ?? "",
         ltp: t.ltp ?? "",
-        gross_pnl: t.gross_pnl ?? "",
+        overall_pnl: t.gross_pnl ?? "",
         target_price: "",
         stop_loss_price: "",
         entry_time: t.entry_time || "",
@@ -135,6 +136,7 @@ export default function LogTradePage() {
         const payload = {
           trade,
           description,
+          rules_broken_detail: rulesBrokenDetail,
         };
         if (sharedScreenshotUrl) {
           payload.screenshot_url = sharedScreenshotUrl;
@@ -187,6 +189,7 @@ export default function LogTradePage() {
         <ReviewStep
           trades={trades}
           onChangeTrade={handleChangeTrade}
+          onRulesChange={setRulesBrokenDetail}
           onNext={() => setStep(3)}
         />
       )}

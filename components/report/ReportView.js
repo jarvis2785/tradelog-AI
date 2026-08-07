@@ -9,16 +9,21 @@ import {
   computeBestWorstDay,
   computeDisciplinedVsImpulsive,
   computeMistakeBreakdown,
+  computeChargesSummary,
 } from "@/lib/reportStats";
 import CircularProgress from "./CircularProgress";
 
-export default function ReportView({ report, trades }) {
+export default function ReportView({ report, trades, dailyCharges = [] }) {
   const sections = useMemo(() => parseReportSections(report.report_content), [report.report_content]);
 
   const { best, worst } = useMemo(() => computeBestWorstTrade(trades), [trades]);
   const { bestDay, worstDay } = useMemo(() => computeBestWorstDay(trades), [trades]);
   const disciplined = useMemo(() => computeDisciplinedVsImpulsive(trades), [trades]);
   const mistakeBreakdown = useMemo(() => computeMistakeBreakdown(trades), [trades]);
+  const chargesSummary = useMemo(
+    () => computeChargesSummary(trades, dailyCharges),
+    [trades, dailyCharges]
+  );
 
   const cleanTrades = report.total_trades - report.rule_violations;
   const compliancePct = report.total_trades > 0 ? (cleanTrades / report.total_trades) * 100 : 0;
@@ -33,25 +38,45 @@ export default function ReportView({ report, trades }) {
       {/* 1. Performance Summary */}
       <div className="card">
         <h3 className="text-h3 text-text-primary mb-4">Performance Summary</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <SummaryStat label="Total Trades" value={report.total_trades} />
           <SummaryStat label="Win Rate" value={`${report.win_rate.toFixed(1)}%`} />
+          <SummaryStat
+            label="Overall P&L"
+            value={formatCurrency(chargesSummary.totalOverallPnl)}
+            tone={chargesSummary.totalOverallPnl >= 0 ? "profit" : "loss"}
+          />
           <SummaryStat
             label="Net P&L"
             value={formatCurrency(report.net_pnl)}
             tone={report.net_pnl >= 0 ? "profit" : "loss"}
+            note={
+              chargesSummary.totalCharges > 0
+                ? `${formatCurrency(chargesSummary.totalCharges)} lost to charges this week`
+                : undefined
+            }
           />
           <SummaryStat
             label="Best Trade"
-            value={best ? formatCurrency(best.net_pnl) : "—"}
+            value={best ? formatCurrency(best.overall_pnl) : "—"}
             tone="profit"
           />
           <SummaryStat
             label="Worst Trade"
-            value={worst ? formatCurrency(worst.net_pnl) : "—"}
+            value={worst ? formatCurrency(worst.overall_pnl) : "—"}
             tone="loss"
           />
-          <SummaryStat label="Avg P&L / Trade" value={formatCurrency(report.total_trades ? report.net_pnl / report.total_trades : 0)} />
+          <SummaryStat
+            label="Avg P&L / Trade"
+            value={formatCurrency(
+              report.total_trades ? chargesSummary.totalOverallPnl / report.total_trades : 0
+            )}
+          />
+          <SummaryStat
+            label="Charges Paid"
+            value={formatCurrency(chargesSummary.totalCharges)}
+            tone={chargesSummary.totalCharges > 0 ? "loss" : undefined}
+          />
         </div>
       </div>
 
@@ -61,7 +86,13 @@ export default function ReportView({ report, trades }) {
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <CircularProgress
             percent={compliancePct}
-            color={compliancePct >= 70 ? "#22c55e" : compliancePct >= 40 ? "#f59e0b" : "#ef4444"}
+            color={
+              compliancePct >= 70
+                ? "rgb(var(--profit))"
+                : compliancePct >= 40
+                ? "rgb(var(--warning))"
+                : "rgb(var(--loss))"
+            }
           />
           <div className="flex-1 grid grid-cols-2 gap-3 w-full">
             <SummaryStat label="Clean Trades" value={cleanTrades} tone="profit" />
@@ -85,7 +116,7 @@ export default function ReportView({ report, trades }) {
                     {m.count}x · {formatCurrency(m.cost)}
                   </span>
                 </div>
-                <div className="h-1.5 w-full bg-white/[0.05] rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-overlay/[0.05] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-loss rounded-full"
                     style={{ width: `${(m.count / maxMistakeCount) * 100}%` }}
@@ -197,13 +228,14 @@ export default function ReportView({ report, trades }) {
   );
 }
 
-function SummaryStat({ label, value, tone }) {
+function SummaryStat({ label, value, tone, note }) {
   const toneClass =
     tone === "profit" ? "text-profit" : tone === "loss" ? "text-loss" : "text-text-primary";
   return (
     <div className="border border-border rounded-control px-3 py-2.5">
       <p className="text-small text-text-muted mb-0.5">{label}</p>
       <p className={`font-mono text-body font-semibold ${toneClass}`}>{value}</p>
+      {note && <p className="text-small text-text-muted mt-1 leading-snug">{note}</p>}
     </div>
   );
 }

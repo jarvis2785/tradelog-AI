@@ -12,7 +12,7 @@ export default function TradeCard({ index, trade, onChange }) {
     onChange({ ...trade, [field]: value });
   }
 
-  // auto-calculate gross P&L when qty/buy/sell change, unless user edited it directly
+  // auto-calculate overall P&L when qty/buy/sell change, unless user edited it directly
   useEffect(() => {
     if (!autoCalcRef.current) return;
     const qty = Number(trade.quantity);
@@ -20,16 +20,16 @@ export default function TradeCard({ index, trade, onChange }) {
     const sell = Number(trade.sell_avg_price);
     if (qty && buy && sell) {
       const computed = Math.round((sell - buy) * qty * 100) / 100;
-      if (String(computed) !== String(trade.gross_pnl)) {
-        onChange({ ...trade, gross_pnl: computed });
+      if (String(computed) !== String(trade.overall_pnl)) {
+        onChange({ ...trade, overall_pnl: computed });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trade.quantity, trade.buy_avg_price, trade.sell_avg_price]);
 
-  function handleGrossPnlChange(value) {
+  function handleOverallPnlChange(value) {
     autoCalcRef.current = false;
-    update("gross_pnl", value);
+    update("overall_pnl", value);
   }
 
   const rr = calculateRiskReward(trade.buy_avg_price, trade.target_price, trade.stop_loss_price);
@@ -108,15 +108,15 @@ export default function TradeCard({ index, trade, onChange }) {
         </div>
 
         <div>
-          <label className={FIELD_LABEL}>Gross P&L ₹</label>
+          <label className={FIELD_LABEL}>Overall P&L ₹</label>
           <input
             type="number"
             step="0.01"
-            value={trade.gross_pnl}
-            onChange={(e) => handleGrossPnlChange(e.target.value)}
+            value={trade.overall_pnl}
+            onChange={(e) => handleOverallPnlChange(e.target.value)}
             placeholder="0.00"
             className={`input-field h-11 font-mono ${
-              Number(trade.gross_pnl) < 0 ? "text-loss" : Number(trade.gross_pnl) > 0 ? "text-profit" : ""
+              Number(trade.overall_pnl) < 0 ? "text-loss" : Number(trade.overall_pnl) > 0 ? "text-profit" : ""
             }`}
           />
         </div>

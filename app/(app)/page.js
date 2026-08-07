@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, LogOut, Inbox, ArrowDown } from "lucide-react";
 import { useTrades } from "@/lib/useTrades";
 import { computeDashboardStats, computeWeeklyChartData } from "@/lib/stats";
-import { getGreeting, formatCurrency, formatCompactCurrency } from "@/lib/utils";
+import { getGreeting, formatCurrency, getWeekRange } from "@/lib/utils";
 import { clearSession } from "@/lib/auth";
+import { supabase, CHARGES_TABLE } from "@/lib/supabase";
 import StatCard from "@/components/StatCard";
 import { StatCardSkeleton } from "@/components/Skeleton";
 import PnlChart from "@/components/PnlChart";
@@ -18,8 +19,29 @@ export default function DashboardPage() {
   const { trades, loading } = useTrades();
   const router = useRouter();
 
-  const stats = useMemo(() => computeDashboardStats(trades), [trades]);
-  const chartData = useMemo(() => computeWeeklyChartData(trades), [trades]);
+  const [weekCharges, setWeekCharges] = useState([]);
+  const [chargesLoaded, setChargesLoaded] = useState(false);
+
+  const loadWeekCharges = useCallback(async () => {
+    const { start, end } = getWeekRange(new Date());
+    const { data } = await supabase
+      .from(CHARGES_TABLE)
+      .select("*")
+      .gte("date", start)
+      .lte("date", end);
+    setWeekCharges(data || []);
+    setChargesLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    loadWeekCharges();
+  }, [loadWeekCharges]);
+
+  const stats = useMemo(() => computeDashboardStats(trades, weekCharges), [trades, weekCharges]);
+  const chartData = useMemo(
+    () => computeWeeklyChartData(trades, weekCharges),
+    [trades, weekCharges]
+  );
   const recentTrades = useMemo(() => trades.slice(0, 5), [trades]);
 
   const today = new Date();
@@ -76,7 +98,7 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-            {loading ? (
+            {loading || !chargesLoaded ? (
               Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)
             ) : (
               <>
@@ -85,12 +107,22 @@ export default function DashboardPage() {
                   value={stats.todaysPnl}
                   formatter={(v) => formatCurrency(v)}
                   tone={stats.todaysPnl >= 0 ? "profit" : "loss"}
+                  subLabel={
+                    stats.todaysNetPnl !== null
+                      ? `NET: ${formatCurrency(stats.todaysNetPnl)}`
+                      : undefined
+                  }
                 />
                 <StatCard
                   label="This Week's P&L"
                   value={stats.weekPnl}
                   formatter={(v) => formatCurrency(v)}
                   tone={stats.weekPnl >= 0 ? "profit" : "loss"}
+                  subLabel={
+                    stats.weekTradingDays > 0
+                      ? `${stats.weekDaysWithCharges} of ${stats.weekTradingDays} trading days with charges entered`
+                      : undefined
+                  }
                 />
                 <StatCard
                   label="All Time Win Rate"

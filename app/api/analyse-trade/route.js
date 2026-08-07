@@ -3,7 +3,12 @@ import { randomUUID } from "crypto";
 import { getAnthropicClient, CLAUDE_MODEL, parseClaudeJson } from "@/lib/anthropic";
 import { supabase, TRADES_TABLE, SCREENSHOTS_BUCKET } from "@/lib/supabase";
 
-function buildPrompt(description, trade) {
+function buildPrompt(description, trade, rulesBrokenDetail) {
+  const brokenRulesLine =
+    rulesBrokenDetail && rulesBrokenDetail.length > 0
+      ? rulesBrokenDetail.join(", ")
+      : "None — trying to follow all rules";
+
   return `You are an AI trading coach for an intraday equity trader named Umesh.
 
 His personal rulebook:
@@ -26,6 +31,9 @@ Mistake categories:
 Analyse this journal entry: "${description}"
 
 Trade details: ${JSON.stringify(trade)}
+
+Rules the trader was NOT trying to follow for this trade: ${brokenRulesLine}
+Use this list to make your ai_analysis specific to these exact rule violations rather than guessing.
 
 Return ONLY valid JSON. No explanation. No markdown. No code blocks.
 
@@ -64,7 +72,7 @@ async function uploadScreenshot(screenshot) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { trade, description, screenshot, screenshot_url } = body;
+    const { trade, description, screenshot, screenshot_url, rules_broken_detail } = body;
 
     if (!trade || !description) {
       return NextResponse.json(
@@ -74,9 +82,14 @@ export async function POST(request) {
     }
 
     const riskRewardRatio = calculateRR(trade);
+    const rulesBrokenDetail = Array.isArray(rules_broken_detail) ? rules_broken_detail : [];
 
     const anthropic = getAnthropicClient();
-    const prompt = buildPrompt(description, { ...trade, risk_reward_ratio: riskRewardRatio });
+    const prompt = buildPrompt(
+      description,
+      { ...trade, risk_reward_ratio: riskRewardRatio },
+      rulesBrokenDetail
+    );
 
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
@@ -107,7 +120,7 @@ export async function POST(request) {
       finalScreenshotUrl = await uploadScreenshot(screenshot);
     }
 
-    const grossPnl = trade.gross_pnl === "" || trade.gross_pnl == null ? null : Number(trade.gross_pnl);
+    const overallPnl = trade.overall_pnl === "" || trade.overall_pnl == null ? null : Number(trade.overall_pnl);
 
     const record = {
       date: trade.date,
@@ -118,12 +131,13 @@ export async function POST(request) {
       buy_avg_price: trade.buy_avg_price === "" || trade.buy_avg_price == null ? null : Number(trade.buy_avg_price),
       sell_avg_price: trade.sell_avg_price === "" || trade.sell_avg_price == null ? null : Number(trade.sell_avg_price),
       ltp: trade.ltp === "" || trade.ltp == null ? null : Number(trade.ltp),
-      gross_pnl: grossPnl,
-      net_pnl: grossPnl,
+      overall_pnl: overallPnl,
+      net_pnl: overallPnl,
       screenshot_url: finalScreenshotUrl,
       description,
       mistake_types: (analysis.mistake_types || []).map((m) => String(m).trim().toLowerCase()),
       rule_broken: !!analysis.rule_broken,
+      rules_broken_detail: rulesBrokenDetail,
       ai_analysis: analysis.ai_analysis || "",
       entry_time: trade.entry_time || null,
       exit_time: trade.exit_time || null,

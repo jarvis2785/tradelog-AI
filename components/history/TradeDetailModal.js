@@ -1,20 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Bot, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { X, Bot, AlertTriangle, CheckCircle2, Receipt } from "lucide-react";
 import { toDDMMYYYY, formatCurrency } from "@/lib/utils";
 import { MistakePill } from "@/components/Badge";
+import { supabase, TRADES_TABLE, CHARGES_TABLE } from "@/lib/supabase";
 
 export default function TradeDetailModal({ trade, onClose }) {
   const [expandedImage, setExpandedImage] = useState(false);
+  const [dayCharges, setDayCharges] = useState(null);
+  const [dayOverallPnl, setDayOverallPnl] = useState(0);
+  const [loadingCharges, setLoadingCharges] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoadingCharges(true);
+      const [chargesRes, dayTradesRes] = await Promise.all([
+        supabase.from(CHARGES_TABLE).select("*").eq("date", trade.date).maybeSingle(),
+        supabase.from(TRADES_TABLE).select("overall_pnl").eq("date", trade.date),
+      ]);
+      if (!cancelled) {
+        setDayCharges(chargesRes.data || null);
+        const sum = (dayTradesRes.data || []).reduce(
+          (s, t) => s + (Number(t.overall_pnl) || 0),
+          0
+        );
+        setDayOverallPnl(sum);
+        setLoadingCharges(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [trade.date]);
 
   if (!trade) return null;
 
-  const positive = Number(trade.net_pnl) >= 0;
+  const positive = Number(trade.overall_pnl) >= 0;
   const mistakes = (trade.mistake_types || []).filter(
     (m) => m && m.toLowerCase() !== "clean trade"
   );
+  const rulesBroken = trade.rules_broken_detail || [];
 
   return (
     <AnimatePresence>
@@ -53,13 +83,16 @@ export default function TradeDetailModal({ trade, onClose }) {
 
           <div className="p-5 flex flex-col gap-5">
             <div className="flex items-center justify-between">
-              <span
-                className={`font-mono text-2xl font-semibold ${
-                  positive ? "text-profit" : "text-loss"
-                }`}
-              >
-                {formatCurrency(trade.net_pnl)}
-              </span>
+              <div>
+                <p className="text-small text-text-secondary mb-1">Overall P&L</p>
+                <span
+                  className={`font-mono text-2xl font-semibold ${
+                    positive ? "text-profit" : "text-loss"
+                  }`}
+                >
+                  {formatCurrency(trade.overall_pnl)}
+                </span>
+              </div>
               {trade.rule_broken ? (
                 <span className="badge-rule-broken flex items-center gap-1">
                   <AlertTriangle size={12} />
@@ -106,6 +139,74 @@ export default function TradeDetailModal({ trade, onClose }) {
                 </div>
               </div>
             )}
+
+            <div>
+              <p className="text-small text-text-secondary mb-2">Rules Broken</p>
+              {rulesBroken.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {rulesBroken.map((r) => (
+                    <span key={r} className="badge-loss">
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="badge-profit">All rules followed</span>
+              )}
+            </div>
+
+            <div className="rounded-control border border-border px-3.5 py-3">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Receipt size={14} className="text-text-secondary" />
+                <p className="text-small font-medium text-text-secondary">Day&apos;s Charges</p>
+              </div>
+              {loadingCharges ? (
+                <div className="skeleton h-4 w-40" />
+              ) : dayCharges ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-small text-text-muted mb-0.5">Overall P&L</p>
+                    <p
+                      className={`font-mono text-body ${
+                        dayOverallPnl >= 0 ? "text-profit" : "text-loss"
+                      }`}
+                    >
+                      {formatCurrency(dayOverallPnl)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-small text-text-muted mb-0.5">Govt Charges</p>
+                    <p className="font-mono text-body text-text-primary">
+                      {formatCurrency(dayCharges.govt_charges)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-small text-text-muted mb-0.5">Brokerage</p>
+                    <p className="font-mono text-body text-text-primary">
+                      {formatCurrency(dayCharges.brokerage)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-small text-text-muted mb-0.5">Net P&L</p>
+                    <p
+                      className={`font-mono text-body font-semibold ${
+                        Number(dayCharges.net_pnl) >= 0 ? "text-profit" : "text-loss"
+                      }`}
+                    >
+                      {formatCurrency(dayCharges.net_pnl)}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-small text-text-muted">
+                  Charges not yet entered —{" "}
+                  <Link href="/charges" className="text-accent hover:underline">
+                    add them in the Charges section
+                  </Link>
+                  .
+                </p>
+              )}
+            </div>
 
             {trade.screenshot_url && (
               <div>

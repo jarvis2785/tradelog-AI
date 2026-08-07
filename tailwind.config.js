@@ -9,25 +9,27 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#0a0a0a",
-        surface: "#111111",
-        "surface-alt": "#0f0f0f",
+        background: "rgb(var(--bg-primary) / <alpha-value>)",
+        surface: "rgb(var(--bg-surface) / <alpha-value>)",
+        "surface-alt": "rgb(var(--bg-surface-alt) / <alpha-value>)",
         border: {
-          DEFAULT: "#1f1f1f",
-          hover: "#2f2f2f",
+          DEFAULT: "rgb(var(--border-color) / <alpha-value>)",
+          hover: "rgb(var(--border-hover) / <alpha-value>)",
         },
         text: {
-          primary: "#ffffff",
-          secondary: "#888888",
-          muted: "#555555",
+          primary: "rgb(var(--text-primary) / <alpha-value>)",
+          secondary: "rgb(var(--text-secondary) / <alpha-value>)",
+          muted: "rgb(var(--text-muted) / <alpha-value>)",
         },
-        profit: "#22c55e",
-        loss: "#ef4444",
+        profit: "rgb(var(--profit) / <alpha-value>)",
+        loss: "rgb(var(--loss) / <alpha-value>)",
         accent: {
-          DEFAULT: "#6366f1",
-          hover: "#4f46e5",
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          hover: "rgb(var(--accent-hover) / <alpha-value>)",
         },
-        warning: "#f59e0b",
+        warning: "rgb(var(--warning) / <alpha-value>)",
+        overlay: "rgb(var(--overlay) / <alpha-value>)",
+        "secondary-hover": "rgb(var(--btn-secondary-hover) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "sans-serif"],

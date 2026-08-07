@@ -1,8 +1,9 @@
 "use client";
 
 import TradeCard from "./TradeCard";
+import RulesChecklist from "./RulesChecklist";
 
-export default function ReviewStep({ trades, onChangeTrade, onNext }) {
+export default function ReviewStep({ trades, onChangeTrade, onRulesChange, onNext }) {
   const valid = trades.every(
     (t) => t.stock_name && t.quantity && t.buy_avg_price && t.sell_avg_price && t.date
   );
@@ -24,6 +25,8 @@ export default function ReviewStep({ trades, onChangeTrade, onNext }) {
           onChange={(updated) => onChangeTrade(i, updated)}
         />
       ))}
+
+      <RulesChecklist onChange={onRulesChange} />
 
       <button
         onClick={onNext}

@@ -76,7 +76,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
             {MISTAKE_TYPES.map((m) => (
               <label
                 key={m}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-control hover:bg-white/[0.04] cursor-pointer text-body text-text-primary"
+                className="flex items-center gap-2.5 px-2.5 py-2 rounded-control hover:bg-overlay/[0.04] cursor-pointer text-body text-text-primary"
               >
                 <input
                   type="checkbox"

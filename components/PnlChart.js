@@ -36,38 +36,38 @@ export default function PnlChart({ data }) {
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="pnlFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.28} />
-              <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+              <stop offset="0%" stopColor="rgb(var(--profit))" stopOpacity={0.28} />
+              <stop offset="100%" stopColor="rgb(var(--profit))" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid
             vertical={false}
-            stroke="#1f1f1f"
+            stroke="rgb(var(--border-color))"
             strokeDasharray="0"
           />
           <XAxis
             dataKey="day"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "#555555", fontSize: 12 }}
+            tick={{ fill: "rgb(var(--text-muted))", fontSize: 12 }}
             dy={8}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "#555555", fontSize: 11 }}
+            tick={{ fill: "rgb(var(--text-muted))", fontSize: 11 }}
             tickFormatter={(v) => formatCompactCurrency(v)}
             width={64}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#2f2f2f" }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgb(var(--border-hover))" }} />
           <Area
             type="monotone"
             dataKey="pnl"
-            stroke="#22c55e"
+            stroke="rgb(var(--profit))"
             strokeWidth={2}
             fill="url(#pnlFill)"
-            dot={{ r: 3, fill: "#22c55e", strokeWidth: 0 }}
-            activeDot={{ r: 5, fill: "#22c55e", strokeWidth: 0 }}
+            dot={{ r: 3, fill: "rgb(var(--profit))", strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: "rgb(var(--profit))", strokeWidth: 0 }}
           />
         </AreaChart>
       </ResponsiveContainer>
