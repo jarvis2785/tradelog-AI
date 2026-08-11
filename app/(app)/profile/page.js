@@ -2,6 +2,7 @@
 
 import { User } from "lucide-react";
 import RulesManager from "@/components/profile/RulesManager";
+import RiskPerTradeCard from "@/components/profile/RiskPerTradeCard";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const TRADER_INFO = [
@@ -10,7 +11,6 @@ const TRADER_INFO = [
   { label: "Market", value: "Equity Intraday" },
   { label: "Entry Window", value: "9:15 AM – 10:00 AM" },
   { label: "Exit Before", value: "3:15 PM" },
-  { label: "Risk Per Trade", value: "₹250" },
 ];
 
 export default function ProfilePage() {
@@ -34,6 +34,8 @@ export default function ProfilePage() {
           ))}
         </div>
       </div>
+
+      <RiskPerTradeCard />
 
       <RulesManager />
 

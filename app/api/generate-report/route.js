@@ -1,12 +1,28 @@
 import { NextResponse } from "next/server";
 import { getAnthropicClient, CLAUDE_MODEL, stripJsonFences } from "@/lib/anthropic";
 import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE } from "@/lib/supabase";
-import { toDDMMYYYY } from "@/lib/utils";
+import { toDDMMYYYY, getMonthRange } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
-function buildPrompt(trades, chargesText) {
-  return `You are an AI trading coach generating a weekly performance report for Umesh, an intraday equity trader.
+const GOALS_HEADER = {
+  weekly: "3 GOALS FOR NEXT WEEK",
+  monthly: "3 GOALS FOR NEXT MONTH",
+  overall: "3 GOALS FOR ONGOING DEVELOPMENT",
+};
+
+function buildReportTypeNote(reportType, monthYear) {
+  if (reportType === "monthly") {
+    return `This is a monthly performance report for ${monthYear}. Look for monthly patterns, consistency trends, and give 3 goals for next month.`;
+  }
+  if (reportType === "overall") {
+    return "This is an all-time performance report covering all trades since the first logged trade. Identify long-term trajectory, whether discipline is improving or declining over time, and give 3 strategic goals for ongoing development.";
+  }
+  return "Focus on this week's specific patterns and give 3 goals for next week.";
+}
+
+function buildPrompt(trades, chargesText, statsText, reportTypeNote, goalsHeader) {
+  return `You are an AI trading coach generating a performance report for Umesh, an intraday equity trader.
 
 His rulebook:
 1. No overtrading (max 2-3 trades/day)
@@ -14,14 +30,18 @@ His rulebook:
 3. Stop trading once daily limit is hit
 4. No emotional trades
 
-All trades this week:
+${reportTypeNote}
+
+All trades in this period:
 ${JSON.stringify(trades)}
 
 ${chargesText}
 
-For each trade, the specific rules broken are listed in rules_broken_detail. Use this to identify which specific rules Umesh breaks most frequently across the week and call them out by name in the TOP 3 WEAKNESSES and 3 GOALS FOR NEXT WEEK sections.
+${statsText}
 
-Generate a detailed weekly performance report with these exact sections. Use clear section headers exactly as written:
+For each trade, the specific rules broken are listed in rules_broken_detail. Use this to identify which specific rules Umesh breaks most frequently and call them out by name in the TOP 3 WEAKNESSES and ${goalsHeader} sections.
+
+Generate a detailed performance report with these exact sections. Use clear section headers exactly as written:
 
 PERFORMANCE SUMMARY
 Total trades, win rate, total Overall P&L, total Net P&L (after govt charges and brokerage), profitable trades count, loss trades count, average P&L per trade.
@@ -30,7 +50,7 @@ RULE COMPLIANCE SCORE
 Percentage of trades with no rule violations. Number of clean trades vs violated trades.
 
 MISTAKE BREAKDOWN
-For each mistake type that occurred this week: name, how many times, estimated ₹ cost impact.
+For each mistake type that occurred in this period: name, how many times, estimated ₹ cost impact.
 
 BEST DAY AND WORST DAY
 Which day had the best P&L and why. Which day had the worst and why.
@@ -39,17 +59,17 @@ DISCIPLINED VS IMPULSIVE
 Average P&L of clean trades vs rule-broken trades. What the difference costs over time.
 
 TOP 3 STRENGTHS
-What Umesh did well this week. Be specific.
+What Umesh did well in this period. Be specific.
 
 TOP 3 WEAKNESSES
 What Umesh must fix. Be specific and direct.
 
-3 GOALS FOR NEXT WEEK
+${goalsHeader}
 Specific, measurable, actionable. Not generic advice.
 
 Be brutally honest. No motivational language. Call out repeated mistakes directly. Use ₹ for all monetary values.
 
-Write in plain text only — no markdown formatting (no **, ##, backticks, or horizontal rules like ---). Under TOP 3 STRENGTHS, TOP 3 WEAKNESSES, and 3 GOALS FOR NEXT WEEK, write each point as a single numbered line (e.g. "1. ...") with no line breaks inside a point.`;
+Write in plain text only — no markdown formatting (no **, ##, backticks, or horizontal rules like ---). Under TOP 3 STRENGTHS, TOP 3 WEAKNESSES, and ${goalsHeader}, write each point as a single numbered line (e.g. "1. ...") with no line breaks inside a point.`;
 }
 
 function buildChargesText(trades, dailyCharges) {
@@ -81,12 +101,48 @@ function buildChargesText(trades, dailyCharges) {
     totalNetPnl += chargesByDate[d] ? Number(chargesByDate[d].net_pnl) || 0 : overallByDay[d];
   });
 
-  return `Financial summary for this week:
+  return `Financial summary for this period:
 ${lines.join("\n")}
 Total Overall P&L: ₹${totalOverallPnl.toFixed(2)}
 Total Charges Paid: ₹${totalCharges.toFixed(2)} (govt: ₹${totalGovtCharges.toFixed(2)} + brokerage: ₹${totalBrokerage.toFixed(2)})
 Total Net P&L: ₹${totalNetPnl.toFixed(2)}
 Days without charges entered: ${withoutCharges.length > 0 ? withoutCharges.map(toDDMMYYYY).join(", ") : "None"}`;
+}
+
+function buildCalculatedStatsText(stats) {
+  if (!stats) return "";
+  const pf =
+    stats.profitFactor === "Infinity" || stats.profitFactor === Infinity
+      ? "∞"
+      : `${Number(stats.profitFactor || 0).toFixed(1)}x`;
+
+  const dayLines = (stats.dayOfWeek || [])
+    .map((d) => {
+      if (!d) return "";
+      if (!d.trades) return `${d.day}: no trades`;
+      const avgR = d.avgR != null ? Number(d.avgR).toFixed(2) : "—";
+      return `${d.day}: ${d.trades} trades, ${Number(d.winRate || 0).toFixed(0)}% win rate, ₹${Number(
+        d.netPnl || 0
+      ).toFixed(2)} P&L, ${avgR} avg R`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return `Calculated Statistics for this period:
+Profit Factor: ${pf}
+Expectancy: ₹${Number(stats.expectancy || 0).toFixed(2)} per trade
+Average R: ${stats.avgR != null ? Number(stats.avgR).toFixed(2) : "—"}
+Total R: ${stats.totalR != null ? Number(stats.totalR).toFixed(2) : "—"}
+Max Drawdown: ₹${Number(stats.maxDrawdown || 0).toFixed(2)} (${Number(stats.maxDrawdownPct || 0).toFixed(1)}%)
+Largest Win: ₹${Number(stats.largestWin || 0).toFixed(2)}
+Largest Loss: ₹${Number(stats.largestLoss || 0).toFixed(2)}
+Consecutive Wins Record: ${stats.maxWinStreak ?? 0}
+Consecutive Losses Record: ${stats.maxLossStreak ?? 0}
+
+Day of Week Performance:
+${dayLines}
+Best Day: ${stats.bestDay?.day || "—"}
+Worst Day: ${stats.worstDay?.day || "—"}`;
 }
 
 function computeStats(trades, dailyCharges) {
@@ -137,38 +193,67 @@ function computeStats(trades, dailyCharges) {
 
 export async function POST(request) {
   try {
-    const { week_start, week_end } = await request.json();
+    const body = await request.json();
+    const {
+      week_start,
+      week_end,
+      report_type: reportTypeRaw,
+      month_year,
+      calculated_stats,
+    } = body;
 
-    if (!week_start || !week_end) {
-      return NextResponse.json(
-        { error: "week_start and week_end are required" },
-        { status: 400 }
-      );
+    const report_type = ["weekly", "monthly", "overall"].includes(reportTypeRaw)
+      ? reportTypeRaw
+      : "weekly";
+
+    let rangeStart = null;
+    let rangeEnd = null;
+
+    if (report_type === "weekly") {
+      if (!week_start || !week_end) {
+        return NextResponse.json(
+          { error: "week_start and week_end are required" },
+          { status: 400 }
+        );
+      }
+      rangeStart = week_start;
+      rangeEnd = week_end;
+    } else if (report_type === "monthly") {
+      if (!month_year) {
+        return NextResponse.json({ error: "month_year is required" }, { status: 400 });
+      }
+      const range = getMonthRange(month_year);
+      if (!range) {
+        return NextResponse.json({ error: "Invalid month_year" }, { status: 400 });
+      }
+      rangeStart = range.start;
+      rangeEnd = range.end;
     }
+    // overall: rangeStart/rangeEnd stay null — no date filter
 
-    const { data: trades, error: fetchError } = await supabase
-      .from(TRADES_TABLE)
-      .select("*")
-      .gte("date", week_start)
-      .lte("date", week_end)
-      .order("date", { ascending: true });
+    let tradesQuery = supabase.from(TRADES_TABLE).select("*").order("date", { ascending: true });
+    if (rangeStart) tradesQuery = tradesQuery.gte("date", rangeStart);
+    if (rangeEnd) tradesQuery = tradesQuery.lte("date", rangeEnd);
+    const { data: trades, error: fetchError } = await tradesQuery;
 
     if (fetchError) {
       throw new Error(fetchError.message);
     }
 
     if (!trades || trades.length === 0) {
-      return NextResponse.json(
-        { error: "No trades logged for this week" },
-        { status: 404 }
-      );
+      const emptyMessage =
+        report_type === "monthly"
+          ? "No trades logged for this month"
+          : report_type === "overall"
+          ? "No trades logged yet"
+          : "No trades logged for this week";
+      return NextResponse.json({ error: emptyMessage }, { status: 404 });
     }
 
-    const { data: dailyChargesRaw, error: chargesError } = await supabase
-      .from(CHARGES_TABLE)
-      .select("*")
-      .gte("date", week_start)
-      .lte("date", week_end);
+    let chargesQuery = supabase.from(CHARGES_TABLE).select("*");
+    if (rangeStart) chargesQuery = chargesQuery.gte("date", rangeStart);
+    if (rangeEnd) chargesQuery = chargesQuery.lte("date", rangeEnd);
+    const { data: dailyChargesRaw, error: chargesError } = await chargesQuery;
 
     if (chargesError) {
       throw new Error(chargesError.message);
@@ -178,7 +263,10 @@ export async function POST(request) {
 
     const anthropic = getAnthropicClient();
     const chargesText = buildChargesText(trades, dailyCharges);
-    const prompt = buildPrompt(trades, chargesText);
+    const statsText = buildCalculatedStatsText(calculated_stats);
+    const reportTypeNote = buildReportTypeNote(report_type, month_year);
+    const goalsHeader = GOALS_HEADER[report_type] || GOALS_HEADER.weekly;
+    const prompt = buildPrompt(trades, chargesText, statsText, reportTypeNote, goalsHeader);
 
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
@@ -198,18 +286,19 @@ export async function POST(request) {
     const stats = computeStats(trades, dailyCharges);
 
     const record = {
-      week_start,
-      week_end,
+      week_start: rangeStart || trades[0].date,
+      week_end: rangeEnd || trades[trades.length - 1].date,
       report_content,
       ...stats,
+      report_type,
+      month_year: report_type === "monthly" ? month_year : null,
       generated_at: new Date().toISOString(),
     };
 
-    const { data: existing } = await supabase
-      .from(REPORTS_TABLE)
-      .select("id")
-      .eq("week_start", week_start)
-      .maybeSingle();
+    let existingQuery = supabase.from(REPORTS_TABLE).select("id").eq("report_type", report_type);
+    if (report_type === "weekly") existingQuery = existingQuery.eq("week_start", week_start);
+    if (report_type === "monthly") existingQuery = existingQuery.eq("month_year", month_year);
+    const { data: existing } = await existingQuery.maybeSingle();
 
     let savedReport, insertError;
     if (existing) {
@@ -233,7 +322,13 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, report: savedReport });
   } catch (err) {
-    console.error("generate-report error:", err);
+    console.error("generate-report error:", {
+      message: err?.message,
+      name: err?.name,
+      status: err?.status,
+      stack: err?.stack,
+      response: err?.error ?? err?.response?.data,
+    });
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 }

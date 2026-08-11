@@ -38,27 +38,27 @@ export default function FilterBar({ filters, onChange, onClear }) {
 
   return (
     <div className="card flex flex-col md:flex-row md:items-end gap-3 md:gap-4 flex-wrap">
-      <div className="flex-1 min-w-[140px]">
+      <div className="w-full md:flex-1 md:min-w-[140px]">
         <label className="block text-small text-text-secondary mb-1.5">From</label>
         <input
           type="date"
           value={filters.from}
           onChange={(e) => onChange({ ...filters, from: e.target.value })}
-          className="input-field h-11"
+          className="input-field h-11 w-full"
         />
       </div>
 
-      <div className="flex-1 min-w-[140px]">
+      <div className="w-full md:flex-1 md:min-w-[140px]">
         <label className="block text-small text-text-secondary mb-1.5">To</label>
         <input
           type="date"
           value={filters.to}
           onChange={(e) => onChange({ ...filters, to: e.target.value })}
-          className="input-field h-11"
+          className="input-field h-11 w-full"
         />
       </div>
 
-      <div className="flex-1 min-w-[180px] relative" ref={ref}>
+      <div className="w-full md:flex-1 md:min-w-[180px] relative" ref={ref}>
         <label className="block text-small text-text-secondary mb-1.5">Mistake Type</label>
         <button
           onClick={() => setMistakeOpen((o) => !o)}
@@ -91,7 +91,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
         )}
       </div>
 
-      <div className="flex-1 min-w-[180px]">
+      <div className="w-full md:flex-1 md:min-w-[180px]">
         <label className="block text-small text-text-secondary mb-1.5">Result</label>
         <div className="flex items-center gap-1 bg-surface border border-border rounded-control p-1 h-11">
           {PNL_OPTIONS.map((opt) => (
@@ -114,7 +114,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
       {hasActiveFilters && (
         <button
           onClick={onClear}
-          className="btn-secondary h-11 flex items-center gap-1.5 shrink-0"
+          className="btn-secondary h-11 flex items-center justify-center gap-1.5 w-full md:w-auto md:shrink-0"
         >
           <X size={14} />
           Clear

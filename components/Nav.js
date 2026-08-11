@@ -98,7 +98,7 @@ export function BottomNav() {
   const items = [...MOBILE_NAV_ITEMS, PROFILE_ITEM];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <div className="flex items-stretch justify-around h-16">
         {items.map((item) => {
           const active = isActive(pathname, item.href);

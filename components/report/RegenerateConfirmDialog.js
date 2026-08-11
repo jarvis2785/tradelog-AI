@@ -31,7 +31,7 @@ export default function RegenerateConfirmDialog({ onCancel, onConfirm, regenerat
             <div>
               <h3 className="text-h3 text-text-primary">Regenerate report?</h3>
               <p className="text-body text-text-secondary mt-1">
-                This will overwrite the existing report for this week with the latest trade
+                This will overwrite the existing report for this period with the latest trade
                 data. Continue?
               </p>
             </div>

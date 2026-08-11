@@ -2,12 +2,32 @@
 
 import { useMemo, useState } from "react";
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
-import { toDDMMYYYY, formatCurrency, classNames } from "@/lib/utils";
+import {
+  toDDMMYYYY,
+  formatCurrency,
+  classNames,
+  computeRMultiple,
+  formatRMultiple,
+} from "@/lib/utils";
 import { MistakePill, RuleBrokenBadge } from "@/components/Badge";
 
 const PAGE_SIZE = 20;
 
-export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
+function RMultiplePill({ trade, riskPerTrade }) {
+  const r = computeRMultiple(trade.overall_pnl, riskPerTrade);
+  return (
+    <span
+      className={classNames(
+        "badge font-mono shrink-0",
+        r == null ? "badge-neutral" : r >= 0 ? "badge-profit" : "badge-loss"
+      )}
+    >
+      {formatRMultiple(r)}
+    </span>
+  );
+}
+
+export default function TradesList({ trades, riskPerTrade, onRowClick, onEdit, onDelete }) {
   const [sortField, setSortField] = useState("date");
   const [sortDir, setSortDir] = useState("desc");
   const [page, setPage] = useState(1);
@@ -106,13 +126,16 @@ export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
                   {formatCurrency(t.sell_avg_price)}
                 </td>
                 <td className="py-3 pr-4">
-                  <span
-                    className={`font-mono text-body font-semibold ${
-                      Number(t.overall_pnl) >= 0 ? "text-profit" : "text-loss"
-                    }`}
-                  >
-                    {formatCurrency(t.overall_pnl)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`font-mono text-body font-semibold ${
+                        Number(t.overall_pnl) >= 0 ? "text-profit" : "text-loss"
+                      }`}
+                    >
+                      {formatCurrency(t.overall_pnl)}
+                    </span>
+                    <RMultiplePill trade={t} riskPerTrade={riskPerTrade} />
+                  </div>
                 </td>
                 <td className="py-3 pr-4">
                   <div className="flex flex-wrap gap-1.5">
@@ -174,13 +197,16 @@ export default function TradesList({ trades, onRowClick, onEdit, onDelete }) {
                   {toDDMMYYYY(t.date)}
                 </p>
               </div>
-              <span
-                className={`font-mono text-body font-semibold ${
-                  Number(t.overall_pnl) >= 0 ? "text-profit" : "text-loss"
-                }`}
-              >
-                {formatCurrency(t.overall_pnl)}
-              </span>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <span
+                  className={`font-mono text-body font-semibold ${
+                    Number(t.overall_pnl) >= 0 ? "text-profit" : "text-loss"
+                  }`}
+                >
+                  {formatCurrency(t.overall_pnl)}
+                </span>
+                <RMultiplePill trade={t} riskPerTrade={riskPerTrade} />
+              </div>
             </div>
             <div className="flex items-center justify-between mt-2.5">
               <div className="flex flex-wrap items-center gap-1.5">

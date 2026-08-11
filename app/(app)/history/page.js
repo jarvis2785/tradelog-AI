@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { History as HistoryIcon } from "lucide-react";
 import { useTrades } from "@/lib/useTrades";
+import { useRiskPerTrade } from "@/lib/useRiskPerTrade";
 import { useToast } from "@/components/Toast";
 import { Pill } from "@/components/Badge";
 import { TableRowSkeleton } from "@/components/Skeleton";
@@ -17,6 +18,7 @@ const DEFAULT_FILTERS = { from: "", to: "", mistakeTypes: [], pnl: "all" };
 
 export default function HistoryPage() {
   const { trades, loading, refetch } = useTrades();
+  const { riskPerTrade } = useRiskPerTrade();
   const toast = useToast();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [selectedTrade, setSelectedTrade] = useState(null);
@@ -121,6 +123,7 @@ export default function HistoryPage() {
       ) : (
         <TradesList
           trades={filtered}
+          riskPerTrade={riskPerTrade}
           onRowClick={setSelectedTrade}
           onEdit={setEditingTrade}
           onDelete={setDeletingTrade}

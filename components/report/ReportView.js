@@ -3,17 +3,33 @@
 import { useMemo } from "react";
 import { CheckCircle2, AlertTriangle, Target } from "lucide-react";
 import { formatCurrency, toDDMMYYYY } from "@/lib/utils";
-import { parseReportSections, parseListItems } from "@/lib/reportParser";
+import { parseReportSections, parseListItems, goalsHeaderForType } from "@/lib/reportParser";
 import {
   computeBestWorstTrade,
   computeBestWorstDay,
   computeDisciplinedVsImpulsive,
   computeMistakeBreakdown,
   computeChargesSummary,
+  computePerformanceStats,
+  computeDayOfWeekAnalysis,
 } from "@/lib/reportStats";
 import CircularProgress from "./CircularProgress";
+import PerformanceStatsCard from "./PerformanceStatsCard";
+import DayOfWeekAnalysis from "./DayOfWeekAnalysis";
 
-export default function ReportView({ report, trades, dailyCharges = [] }) {
+const GOALS_LABEL = {
+  weekly: "3 Goals for Next Week",
+  monthly: "3 Goals for Next Month",
+  overall: "3 Goals for Ongoing Development",
+};
+
+const PERIOD_TEXT = {
+  weekly: "this week",
+  monthly: "this month",
+  overall: "all time",
+};
+
+export default function ReportView({ report, trades, dailyCharges = [], riskPerTrade }) {
   const sections = useMemo(() => parseReportSections(report.report_content), [report.report_content]);
 
   const { best, worst } = useMemo(() => computeBestWorstTrade(trades), [trades]);
@@ -24,14 +40,24 @@ export default function ReportView({ report, trades, dailyCharges = [] }) {
     () => computeChargesSummary(trades, dailyCharges),
     [trades, dailyCharges]
   );
+  const performanceStats = useMemo(
+    () => computePerformanceStats(trades, riskPerTrade),
+    [trades, riskPerTrade]
+  );
+  const dayOfWeek = useMemo(
+    () => computeDayOfWeekAnalysis(trades, riskPerTrade),
+    [trades, riskPerTrade]
+  );
 
   const cleanTrades = report.total_trades - report.rule_violations;
   const compliancePct = report.total_trades > 0 ? (cleanTrades / report.total_trades) * 100 : 0;
   const maxMistakeCount = Math.max(1, ...mistakeBreakdown.map((m) => m.count));
 
+  const goalsHeader = goalsHeaderForType(report.report_type);
+  const periodText = PERIOD_TEXT[report.report_type] || PERIOD_TEXT.weekly;
   const strengths = parseListItems(sections["TOP 3 STRENGTHS"]);
   const weaknesses = parseListItems(sections["TOP 3 WEAKNESSES"]);
-  const goals = parseListItems(sections["3 GOALS FOR NEXT WEEK"]);
+  const goals = parseListItems(sections[goalsHeader]);
 
   return (
     <div id="report-content" className="flex flex-col gap-5">
@@ -52,7 +78,7 @@ export default function ReportView({ report, trades, dailyCharges = [] }) {
             tone={report.net_pnl >= 0 ? "profit" : "loss"}
             note={
               chargesSummary.totalCharges > 0
-                ? `${formatCurrency(chargesSummary.totalCharges)} lost to charges this week`
+                ? `${formatCurrency(chargesSummary.totalCharges)} lost to charges ${periodText}`
                 : undefined
             }
           />
@@ -101,11 +127,17 @@ export default function ReportView({ report, trades, dailyCharges = [] }) {
         </div>
       </div>
 
-      {/* 3. Mistake Breakdown */}
+      {/* 3. Performance Statistics */}
+      <PerformanceStatsCard stats={performanceStats} />
+
+      {/* 4. Day of Week Analysis */}
+      <DayOfWeekAnalysis analysis={dayOfWeek} />
+
+      {/* 5. Mistake Breakdown */}
       <div className="card">
         <h3 className="text-h3 text-text-primary mb-4">Mistake Breakdown</h3>
         {mistakeBreakdown.length === 0 ? (
-          <p className="text-body text-text-secondary">No mistakes recorded this week. Clean.</p>
+          <p className="text-body text-text-secondary">No mistakes recorded {periodText}. Clean.</p>
         ) : (
           <div className="flex flex-col gap-3.5">
             {mistakeBreakdown.map((m) => (
@@ -210,9 +242,9 @@ export default function ReportView({ report, trades, dailyCharges = [] }) {
         </div>
       </div>
 
-      {/* 8. Goals for Next Week */}
+      {/* 10. Goals */}
       <div className="card">
-        <h3 className="text-h3 text-text-primary mb-4">3 Goals for Next Week</h3>
+        <h3 className="text-h3 text-text-primary mb-4">{GOALS_LABEL[report.report_type] || GOALS_LABEL.weekly}</h3>
         <ol className="flex flex-col gap-3">
           {(goals.length ? goals : ["Keep logging trades daily to build a report."]).map((g, i) => (
             <li key={i} className="flex items-start gap-3">
