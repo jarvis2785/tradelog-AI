@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAnthropicClient, CLAUDE_MODEL, stripJsonFences } from "@/lib/anthropic";
-import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE } from "@/lib/supabase";
+import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE, EXPENSES_TABLE } from "@/lib/supabase";
 import { toDDMMYYYY, getMonthRange } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -11,17 +11,75 @@ const GOALS_HEADER = {
   overall: "3 GOALS FOR ONGOING DEVELOPMENT",
 };
 
+const ECONOMIC_PROMPT_NOTE =
+  " Comment briefly on whether the trading operation is economically profitable after operating costs, and whether the current expense level is sustainable relative to trading performance. Keep this to 1-2 sentences and fold it into the TOP 3 WEAKNESSES section as context for one of the points, or into the goals section as context for one goal — do not create a separate standalone section for it, and do not let it run past 2 sentences.";
+
 function buildReportTypeNote(reportType, monthYear) {
   if (reportType === "monthly") {
-    return `This is a monthly performance report for ${monthYear}. Look for monthly patterns, consistency trends, and give 3 goals for next month.`;
+    return `This is a monthly performance report for ${monthYear}. Look for monthly patterns, consistency trends, and give 3 goals for next month.${ECONOMIC_PROMPT_NOTE}`;
   }
   if (reportType === "overall") {
-    return "This is an all-time performance report covering all trades since the first logged trade. Identify long-term trajectory, whether discipline is improving or declining over time, and give 3 strategic goals for ongoing development.";
+    return `This is an all-time performance report covering all trades since the first logged trade. Identify long-term trajectory, whether discipline is improving or declining over time, and give 3 strategic goals for ongoing development.${ECONOMIC_PROMPT_NOTE}`;
   }
   return "Focus on this week's specific patterns and give 3 goals for next week.";
 }
 
-function buildPrompt(trades, chargesText, statsText, reportTypeNote, goalsHeader) {
+async function buildEconomicText(reportType, monthYear, netPnl) {
+  if (reportType === "weekly") return "";
+
+  let expenseRows = [];
+  if (reportType === "monthly") {
+    const { data } = await supabase
+      .from(EXPENSES_TABLE)
+      .select("*")
+      .eq("month_year", monthYear)
+      .maybeSingle();
+    expenseRows = data ? [data] : [];
+  } else if (reportType === "overall") {
+    const { data } = await supabase.from(EXPENSES_TABLE).select("*");
+    expenseRows = data || [];
+  }
+
+  if (expenseRows.length === 0) return "";
+
+  const totalExpenses = expenseRows.reduce((s, r) => s + (Number(r.total_amount) || 0), 0);
+
+  let breakdownLines;
+  if (reportType === "monthly") {
+    const breakdown = Array.isArray(expenseRows[0].breakdown) ? expenseRows[0].breakdown : [];
+    breakdownLines = breakdown
+      .map((item) => `${item.category}: ₹${Number(item.amount || 0).toFixed(2)}`)
+      .join("\n");
+  } else {
+    breakdownLines = expenseRows
+      .slice()
+      .sort((a, b) => {
+        const rangeA = getMonthRange(a.month_year);
+        const rangeB = getMonthRange(b.month_year);
+        if (!rangeA || !rangeB) return 0;
+        return rangeA.start.localeCompare(rangeB.start);
+      })
+      .map((r) => `${r.month_year}: ₹${Number(r.total_amount || 0).toFixed(2)}`)
+      .join("\n");
+  }
+
+  const economicPnl = netPnl - totalExpenses;
+  const label = economicPnl > 0 ? "profitable" : "loss";
+
+  return `Operating Expenses for ${reportType === "monthly" ? monthYear : "all tracked months"}:
+${breakdownLines}
+Total Operating Expenses: ₹${totalExpenses.toFixed(2)}
+
+Economic Summary:
+Net Trading P&L: ₹${netPnl.toFixed(2)}
+Operating Expenses: ₹${totalExpenses.toFixed(2)}
+Economic P&L: ₹${economicPnl.toFixed(2)} (${label})
+
+Note: Operating expenses are paid from personal income and do not reduce trading capital.
+Economic P&L shows whether trading is covering its own operational costs.`;
+}
+
+function buildPrompt(trades, chargesText, statsText, economicText, reportTypeNote, goalsHeader) {
   return `You are an AI trading coach generating a performance report for Umesh, an intraday equity trader.
 
 His rulebook:
@@ -38,6 +96,8 @@ ${JSON.stringify(trades)}
 ${chargesText}
 
 ${statsText}
+
+${economicText}
 
 For each trade, the specific rules broken are listed in rules_broken_detail. Use this to identify which specific rules Umesh breaks most frequently and call them out by name in the TOP 3 WEAKNESSES and ${goalsHeader} sections.
 
@@ -260,13 +320,22 @@ export async function POST(request) {
     }
 
     const dailyCharges = dailyChargesRaw || [];
+    const stats = computeStats(trades, dailyCharges);
 
     const anthropic = getAnthropicClient();
     const chargesText = buildChargesText(trades, dailyCharges);
     const statsText = buildCalculatedStatsText(calculated_stats);
+    const economicText = await buildEconomicText(report_type, month_year, stats.net_pnl);
     const reportTypeNote = buildReportTypeNote(report_type, month_year);
     const goalsHeader = GOALS_HEADER[report_type] || GOALS_HEADER.weekly;
-    const prompt = buildPrompt(trades, chargesText, statsText, reportTypeNote, goalsHeader);
+    const prompt = buildPrompt(
+      trades,
+      chargesText,
+      statsText,
+      economicText,
+      reportTypeNote,
+      goalsHeader
+    );
 
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
@@ -283,7 +352,6 @@ export async function POST(request) {
     }
 
     const report_content = stripJsonFences(textBlock.text);
-    const stats = computeStats(trades, dailyCharges);
 
     const record = {
       week_start: rangeStart || trades[0].date,

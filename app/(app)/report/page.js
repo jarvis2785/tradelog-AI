@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { FileBarChart, Download, RefreshCw, Sparkles } from "lucide-react";
-import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE } from "@/lib/supabase";
+import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE, EXPENSES_TABLE } from "@/lib/supabase";
 import { getLastNWeeks, getLastNMonths } from "@/lib/utils";
 import { useRiskPerTrade } from "@/lib/useRiskPerTrade";
 import { useToast } from "@/components/Toast";
@@ -68,6 +68,7 @@ export default function ReportPage() {
   const [report, setReport] = useState(null);
   const [periodTrades, setPeriodTrades] = useState([]);
   const [periodCharges, setPeriodCharges] = useState([]);
+  const [operatingExpenses, setOperatingExpenses] = useState({ hasData: false, total: 0 });
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
@@ -93,16 +94,45 @@ export default function ReportPage() {
       if (activeRange.start) chargesQuery = chargesQuery.gte("date", activeRange.start);
       if (activeRange.end) chargesQuery = chargesQuery.lte("date", activeRange.end);
 
-      const [reportRes, tradesRes, chargesRes] = await Promise.all([
+      let expensesQuery = Promise.resolve({ data: null });
+      if (activeTab === "monthly") {
+        expensesQuery = supabase
+          .from(EXPENSES_TABLE)
+          .select("*")
+          .eq("month_year", activeRange.monthYear)
+          .maybeSingle();
+      } else if (activeTab === "overall") {
+        expensesQuery = supabase.from(EXPENSES_TABLE).select("total_amount");
+      }
+
+      const [reportRes, tradesRes, chargesRes, expensesRes] = await Promise.all([
         reportQuery.maybeSingle(),
         tradesQuery,
         chargesQuery,
+        expensesQuery,
       ]);
 
       if (cancelled) return;
       setReport(reportRes.data || null);
       setPeriodTrades(tradesRes.data || []);
       setPeriodCharges(chargesRes.data || []);
+
+      if (activeTab === "monthly") {
+        setOperatingExpenses(
+          expensesRes.data
+            ? { hasData: true, total: Number(expensesRes.data.total_amount) || 0 }
+            : { hasData: false, total: 0 }
+        );
+      } else if (activeTab === "overall") {
+        const rows = expensesRes.data || [];
+        setOperatingExpenses({
+          hasData: rows.length > 0,
+          total: rows.reduce((s, r) => s + (Number(r.total_amount) || 0), 0),
+        });
+      } else {
+        setOperatingExpenses({ hasData: false, total: 0 });
+      }
+
       setLoading(false);
     }
 
@@ -166,7 +196,7 @@ export default function ReportPage() {
   function handleDownloadPdf() {
     if (!report) return;
     try {
-      generateReportPdf(report, periodTrades, periodCharges, riskPerTrade);
+      generateReportPdf(report, periodTrades, periodCharges, riskPerTrade, operatingExpenses);
     } catch (err) {
       toast.error("Could not generate PDF. Please try again.");
     }
@@ -230,6 +260,7 @@ export default function ReportPage() {
             trades={periodTrades}
             dailyCharges={periodCharges}
             riskPerTrade={riskPerTrade}
+            operatingExpenses={operatingExpenses}
           />
           <motion.button
             initial={{ opacity: 0, y: 12 }}

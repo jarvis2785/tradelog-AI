@@ -16,6 +16,7 @@ import {
 import CircularProgress from "./CircularProgress";
 import PerformanceStatsCard from "./PerformanceStatsCard";
 import DayOfWeekAnalysis from "./DayOfWeekAnalysis";
+import EconomicSummaryCard from "./EconomicSummaryCard";
 
 const GOALS_LABEL = {
   weekly: "3 Goals for Next Week",
@@ -29,7 +30,13 @@ const PERIOD_TEXT = {
   overall: "all time",
 };
 
-export default function ReportView({ report, trades, dailyCharges = [], riskPerTrade }) {
+export default function ReportView({
+  report,
+  trades,
+  dailyCharges = [],
+  riskPerTrade,
+  operatingExpenses,
+}) {
   const sections = useMemo(() => parseReportSections(report.report_content), [report.report_content]);
 
   const { best, worst } = useMemo(() => computeBestWorstTrade(trades), [trades]);
@@ -105,6 +112,16 @@ export default function ReportView({ report, trades, dailyCharges = [], riskPerT
           />
         </div>
       </div>
+
+      {/* Economic Summary (monthly/overall only) */}
+      {report.report_type !== "weekly" && (
+        <EconomicSummaryCard
+          reportType={report.report_type}
+          monthLabel={report.month_year}
+          netTradingPnl={report.net_pnl}
+          operatingExpenses={operatingExpenses}
+        />
+      )}
 
       {/* 2. Rule Compliance Score */}
       <div className="card">

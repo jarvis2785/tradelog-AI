@@ -3,6 +3,7 @@
 import { User } from "lucide-react";
 import RulesManager from "@/components/profile/RulesManager";
 import RiskPerTradeCard from "@/components/profile/RiskPerTradeCard";
+import ExpensesManager from "@/components/profile/ExpensesManager";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const TRADER_INFO = [
@@ -50,6 +51,8 @@ export default function ProfilePage() {
           <ThemeToggle />
         </div>
       </div>
+
+      <ExpensesManager />
     </div>
   );
 }

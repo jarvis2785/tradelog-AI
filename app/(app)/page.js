@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { Plus, LogOut, Inbox, ArrowDown } from "lucide-react";
 import { useTrades } from "@/lib/useTrades";
 import { computeDashboardStats, computeWeeklyChartData } from "@/lib/stats";
-import { getGreeting, formatCurrency, getWeekRange } from "@/lib/utils";
+import { computeChargesSummary } from "@/lib/reportStats";
+import { getGreeting, formatCurrency, getWeekRange, getLastNMonths, computeEconomicPnl } from "@/lib/utils";
 import { clearSession } from "@/lib/auth";
-import { supabase, CHARGES_TABLE } from "@/lib/supabase";
+import { supabase, CHARGES_TABLE, EXPENSES_TABLE } from "@/lib/supabase";
 import StatCard from "@/components/StatCard";
 import { StatCardSkeleton } from "@/components/Skeleton";
 import PnlChart from "@/components/PnlChart";
@@ -37,12 +38,51 @@ export default function DashboardPage() {
     loadWeekCharges();
   }, [loadWeekCharges]);
 
+  const currentMonth = useMemo(() => getLastNMonths(1)[0], []);
+  const [monthCharges, setMonthCharges] = useState([]);
+  const [operatingExpenses, setOperatingExpenses] = useState(null);
+  const [economicLoaded, setEconomicLoaded] = useState(false);
+
+  const loadEconomicData = useCallback(async () => {
+    const [chargesRes, expensesRes] = await Promise.all([
+      supabase
+        .from(CHARGES_TABLE)
+        .select("*")
+        .gte("date", currentMonth.start)
+        .lte("date", currentMonth.end),
+      supabase.from(EXPENSES_TABLE).select("*").eq("month_year", currentMonth.label).maybeSingle(),
+    ]);
+    setMonthCharges(chargesRes.data || []);
+    setOperatingExpenses(expensesRes.data || null);
+    setEconomicLoaded(true);
+  }, [currentMonth]);
+
+  useEffect(() => {
+    loadEconomicData();
+  }, [loadEconomicData]);
+
   const stats = useMemo(() => computeDashboardStats(trades, weekCharges), [trades, weekCharges]);
   const chartData = useMemo(
     () => computeWeeklyChartData(trades, weekCharges),
     [trades, weekCharges]
   );
   const recentTrades = useMemo(() => trades.slice(0, 5), [trades]);
+
+  const monthTrades = useMemo(
+    () => trades.filter((t) => t.date >= currentMonth.start && t.date <= currentMonth.end),
+    [trades, currentMonth]
+  );
+  const netTradingPnl = useMemo(
+    () => computeChargesSummary(monthTrades, monthCharges).totalNetPnl,
+    [monthTrades, monthCharges]
+  );
+  const economic = useMemo(
+    () =>
+      operatingExpenses
+        ? computeEconomicPnl(netTradingPnl, Number(operatingExpenses.total_amount) || 0)
+        : null,
+    [netTradingPnl, operatingExpenses]
+  );
 
   const today = new Date();
   const dateLabel = today.toLocaleDateString("en-IN", {
@@ -98,8 +138,8 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-            {loading || !chargesLoaded ? (
-              Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)
+            {loading || !chargesLoaded || !economicLoaded ? (
+              Array.from({ length: 7 }).map((_, i) => <StatCardSkeleton key={i} />)
             ) : (
               <>
                 <StatCard
@@ -151,6 +191,20 @@ export default function DashboardPage() {
                       : stats.streakType === "L"
                       ? "loss"
                       : "neutral"
+                  }
+                />
+                <StatCard
+                  label="Economic P&L"
+                  value={economic ? economic.economicPnl : 0}
+                  formatter={(v) => formatCurrency(v)}
+                  tone={!economic ? "neutral" : economic.economicPnl >= 0 ? "profit" : "loss"}
+                  raw={!economic ? "—" : undefined}
+                  subLabel={
+                    economic
+                      ? `Net ${formatCurrency(economic.netTradingPnl)} - Expenses ${formatCurrency(
+                          economic.operatingExpenses
+                        )}`
+                      : "Add expenses in Profile"
                   }
                 />
               </>
