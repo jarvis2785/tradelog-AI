@@ -17,6 +17,7 @@ import CircularProgress from "./CircularProgress";
 import PerformanceStatsCard from "./PerformanceStatsCard";
 import DayOfWeekAnalysis from "./DayOfWeekAnalysis";
 import EconomicSummaryCard from "./EconomicSummaryCard";
+import CapitalSummaryCard from "./CapitalSummaryCard";
 
 const GOALS_LABEL = {
   weekly: "3 Goals for Next Week",
@@ -36,6 +37,7 @@ export default function ReportView({
   dailyCharges = [],
   riskPerTrade,
   operatingExpenses,
+  capital,
 }) {
   const sections = useMemo(() => parseReportSections(report.report_content), [report.report_content]);
 
@@ -122,6 +124,9 @@ export default function ReportView({
           operatingExpenses={operatingExpenses}
         />
       )}
+
+      {/* Capital Summary (overall tab only) */}
+      {report.report_type === "overall" && <CapitalSummaryCard capital={capital} />}
 
       {/* 2. Rule Compliance Score */}
       <div className="card">

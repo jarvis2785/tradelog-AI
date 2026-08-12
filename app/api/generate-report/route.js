@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { getAnthropicClient, CLAUDE_MODEL, stripJsonFences } from "@/lib/anthropic";
-import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE, EXPENSES_TABLE } from "@/lib/supabase";
+import {
+  supabase,
+  TRADES_TABLE,
+  REPORTS_TABLE,
+  CHARGES_TABLE,
+  EXPENSES_TABLE,
+  CAPITAL_TABLE,
+} from "@/lib/supabase";
 import { toDDMMYYYY, getMonthRange } from "@/lib/utils";
+import { computeNetPnlByDate, computeCapitalMetrics } from "@/lib/capitalStats";
 
 export const runtime = "nodejs";
 
@@ -79,7 +87,38 @@ Note: Operating expenses are paid from personal income and do not reduce trading
 Economic P&L shows whether trading is covering its own operational costs.`;
 }
 
-function buildPrompt(trades, chargesText, statsText, economicText, reportTypeNote, goalsHeader) {
+async function buildCapitalText(reportType, trades, dailyCharges) {
+  if (reportType !== "overall") return "";
+
+  const { data } = await supabase.from(CAPITAL_TABLE).select("*");
+  const transactions = data || [];
+  if (!transactions.some((t) => t.type === "initial_capital")) return "";
+
+  const netPnlByDate = computeNetPnlByDate(trades, dailyCharges);
+  const metrics = computeCapitalMetrics(transactions, netPnlByDate);
+
+  return `Capital Summary:
+Starting Capital: ₹${metrics.startingCapital.toFixed(2)}
+Total Deposited: ₹${metrics.totalDeposited.toFixed(2)}
+Total Withdrawn: ₹${metrics.totalWithdrawn.toFixed(2)}
+Total Trading P&L: ₹${metrics.totalTradingPnl.toFixed(2)}
+Current Account Value: ₹${metrics.currentValue.toFixed(2)}
+Overall Return: ${metrics.overallReturn.toFixed(1)}%
+Peak Capital: ₹${metrics.peakCapital.toFixed(2)}
+Max Drawdown from Peak: ₹${metrics.drawdownAmount.toFixed(2)} (${metrics.drawdownPercent.toFixed(1)}%)
+
+Comment on whether the trader is building long-term wealth, whether withdrawals are sustainable relative to trading performance, and the trajectory of account growth. Keep this to 1-2 sentences and fold it into the TOP 3 WEAKNESSES section as context for one of the points, or into the goals section as context for one goal — do not create a separate standalone section for it, and do not let it run past 2 sentences.`;
+}
+
+function buildPrompt(
+  trades,
+  chargesText,
+  statsText,
+  economicText,
+  capitalText,
+  reportTypeNote,
+  goalsHeader
+) {
   return `You are an AI trading coach generating a performance report for Umesh, an intraday equity trader.
 
 His rulebook:
@@ -98,6 +137,8 @@ ${chargesText}
 ${statsText}
 
 ${economicText}
+
+${capitalText}
 
 For each trade, the specific rules broken are listed in rules_broken_detail. Use this to identify which specific rules Umesh breaks most frequently and call them out by name in the TOP 3 WEAKNESSES and ${goalsHeader} sections.
 
@@ -326,6 +367,7 @@ export async function POST(request) {
     const chargesText = buildChargesText(trades, dailyCharges);
     const statsText = buildCalculatedStatsText(calculated_stats);
     const economicText = await buildEconomicText(report_type, month_year, stats.net_pnl);
+    const capitalText = await buildCapitalText(report_type, trades, dailyCharges);
     const reportTypeNote = buildReportTypeNote(report_type, month_year);
     const goalsHeader = GOALS_HEADER[report_type] || GOALS_HEADER.weekly;
     const prompt = buildPrompt(
@@ -333,6 +375,7 @@ export async function POST(request) {
       chargesText,
       statsText,
       economicText,
+      capitalText,
       reportTypeNote,
       goalsHeader
     );

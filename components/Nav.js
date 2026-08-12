@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Plus, List, Receipt, BarChart2, LogOut, User } from "lucide-react";
+import { Home, Plus, List, Receipt, Wallet, BarChart2, LogOut, User } from "lucide-react";
 import { clearSession } from "@/lib/auth";
 import { classNames } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -12,6 +12,7 @@ const DESKTOP_NAV_ITEMS = [
   { href: "/log-trade", label: "Log Trade", icon: Plus, accent: true },
   { href: "/history", label: "History", icon: List },
   { href: "/charges", label: "Charges", icon: Receipt },
+  { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/report", label: "Report", icon: BarChart2 },
 ];
 
@@ -19,6 +20,7 @@ const MOBILE_NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/history", label: "History", icon: List },
   { href: "/charges", label: "Charges", icon: Receipt },
+  { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/report", label: "Report", icon: BarChart2 },
 ];
 

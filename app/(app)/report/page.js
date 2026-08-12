@@ -6,6 +6,7 @@ import { FileBarChart, Download, RefreshCw, Sparkles } from "lucide-react";
 import { supabase, TRADES_TABLE, REPORTS_TABLE, CHARGES_TABLE, EXPENSES_TABLE } from "@/lib/supabase";
 import { getLastNWeeks, getLastNMonths } from "@/lib/utils";
 import { useRiskPerTrade } from "@/lib/useRiskPerTrade";
+import { useCapitalData } from "@/lib/useCapitalData";
 import { useToast } from "@/components/Toast";
 import { generateReportPdf } from "@/lib/generatePdf";
 import { computePerformanceStats, computeDayOfWeekAnalysis } from "@/lib/reportStats";
@@ -44,6 +45,7 @@ function buildCalculatedStats(trades, riskPerTrade) {
 export default function ReportPage() {
   const toast = useToast();
   const { riskPerTrade } = useRiskPerTrade();
+  const capital = useCapitalData();
 
   const weeks = useMemo(() => getLastNWeeks(8), []);
   const months = useMemo(() => getLastNMonths(12), []);
@@ -196,7 +198,14 @@ export default function ReportPage() {
   function handleDownloadPdf() {
     if (!report) return;
     try {
-      generateReportPdf(report, periodTrades, periodCharges, riskPerTrade, operatingExpenses);
+      generateReportPdf(
+        report,
+        periodTrades,
+        periodCharges,
+        riskPerTrade,
+        operatingExpenses,
+        capital
+      );
     } catch (err) {
       toast.error("Could not generate PDF. Please try again.");
     }
@@ -261,6 +270,7 @@ export default function ReportPage() {
             dailyCharges={periodCharges}
             riskPerTrade={riskPerTrade}
             operatingExpenses={operatingExpenses}
+            capital={capital}
           />
           <motion.button
             initial={{ opacity: 0, y: 12 }}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, LogOut, Inbox, ArrowDown } from "lucide-react";
 import { useTrades } from "@/lib/useTrades";
+import { useCapitalData } from "@/lib/useCapitalData";
 import { computeDashboardStats, computeWeeklyChartData } from "@/lib/stats";
 import { computeChargesSummary } from "@/lib/reportStats";
 import { getGreeting, formatCurrency, getWeekRange, getLastNMonths, computeEconomicPnl } from "@/lib/utils";
@@ -18,6 +19,7 @@ import EmptyState from "@/components/EmptyState";
 
 export default function DashboardPage() {
   const { trades, loading } = useTrades();
+  const capital = useCapitalData();
   const router = useRouter();
 
   const [weekCharges, setWeekCharges] = useState([]);
@@ -138,8 +140,8 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-            {loading || !chargesLoaded || !economicLoaded ? (
-              Array.from({ length: 7 }).map((_, i) => <StatCardSkeleton key={i} />)
+            {loading || !chargesLoaded || !economicLoaded || capital.loading ? (
+              Array.from({ length: 9 }).map((_, i) => <StatCardSkeleton key={i} />)
             ) : (
               <>
                 <StatCard
@@ -206,6 +208,39 @@ export default function DashboardPage() {
                         )}`
                       : "Add expenses in Profile"
                   }
+                />
+                <StatCard
+                  label="Current Account Value"
+                  value={capital.hasStartingCapital ? capital.currentValue : 0}
+                  formatter={(v) => formatCurrency(v)}
+                  tone={
+                    !capital.hasStartingCapital
+                      ? "neutral"
+                      : capital.currentValue >= capital.startingCapital
+                      ? "profit"
+                      : "loss"
+                  }
+                  raw={!capital.hasStartingCapital ? "—" : undefined}
+                  subLabel={
+                    capital.hasStartingCapital
+                      ? `${formatCurrency(capital.currentValue - capital.startingCapital)} return (${
+                          capital.overallReturn >= 0 ? "+" : ""
+                        }${capital.overallReturn.toFixed(1)}%)`
+                      : "Set up in Accounts"
+                  }
+                />
+                <StatCard
+                  label="Overall Return"
+                  value={capital.hasStartingCapital ? capital.overallReturn : 0}
+                  formatter={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`}
+                  tone={
+                    !capital.hasStartingCapital
+                      ? "neutral"
+                      : capital.overallReturn >= 0
+                      ? "profit"
+                      : "loss"
+                  }
+                  raw={!capital.hasStartingCapital ? "—" : undefined}
                 />
               </>
             )}
