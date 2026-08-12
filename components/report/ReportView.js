@@ -12,6 +12,7 @@ import {
   computeChargesSummary,
   computePerformanceStats,
   computeDayOfWeekAnalysis,
+  computeLiveTradeStats,
 } from "@/lib/reportStats";
 import CircularProgress from "./CircularProgress";
 import PerformanceStatsCard from "./PerformanceStatsCard";
@@ -58,8 +59,23 @@ export default function ReportView({
     [trades, riskPerTrade]
   );
 
-  const cleanTrades = report.total_trades - report.rule_violations;
-  const compliancePct = report.total_trades > 0 ? (cleanTrades / report.total_trades) * 100 : 0;
+  // The "overall" report is a point-in-time snapshot saved at last generation —
+  // its stored total_trades/win_rate/net_pnl/rule_violations go stale as soon as new
+  // trades are logged. Weekly/monthly periods are closed, so their snapshot stays valid;
+  // only overall re-derives these live from the (unfiltered) trades/charges already fetched.
+  const isOverall = report.report_type === "overall";
+  const liveStats = useMemo(
+    () => (isOverall ? computeLiveTradeStats(trades) : null),
+    [isOverall, trades]
+  );
+
+  const totalTrades = isOverall ? liveStats.totalTrades : report.total_trades;
+  const winRate = isOverall ? liveStats.winRate : report.win_rate;
+  const netPnl = isOverall ? chargesSummary.totalNetPnl : report.net_pnl;
+  const ruleViolations = isOverall ? liveStats.ruleViolations : report.rule_violations;
+
+  const cleanTrades = totalTrades - ruleViolations;
+  const compliancePct = totalTrades > 0 ? (cleanTrades / totalTrades) * 100 : 0;
   const maxMistakeCount = Math.max(1, ...mistakeBreakdown.map((m) => m.count));
 
   const goalsHeader = goalsHeaderForType(report.report_type);
@@ -74,8 +90,8 @@ export default function ReportView({
       <div className="card">
         <h3 className="text-h3 text-text-primary mb-4">Performance Summary</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <SummaryStat label="Total Trades" value={report.total_trades} />
-          <SummaryStat label="Win Rate" value={`${report.win_rate.toFixed(1)}%`} />
+          <SummaryStat label="Total Trades" value={totalTrades} />
+          <SummaryStat label="Win Rate" value={`${winRate.toFixed(1)}%`} />
           <SummaryStat
             label="Overall P&L"
             value={formatCurrency(chargesSummary.totalOverallPnl)}
@@ -83,8 +99,8 @@ export default function ReportView({
           />
           <SummaryStat
             label="Net P&L"
-            value={formatCurrency(report.net_pnl)}
-            tone={report.net_pnl >= 0 ? "profit" : "loss"}
+            value={formatCurrency(netPnl)}
+            tone={netPnl >= 0 ? "profit" : "loss"}
             note={
               chargesSummary.totalCharges > 0
                 ? `${formatCurrency(chargesSummary.totalCharges)} lost to charges ${periodText}`
@@ -104,7 +120,7 @@ export default function ReportView({
           <SummaryStat
             label="Avg P&L / Trade"
             value={formatCurrency(
-              report.total_trades ? chargesSummary.totalOverallPnl / report.total_trades : 0
+              totalTrades ? chargesSummary.totalOverallPnl / totalTrades : 0
             )}
           />
           <SummaryStat
@@ -120,7 +136,7 @@ export default function ReportView({
         <EconomicSummaryCard
           reportType={report.report_type}
           monthLabel={report.month_year}
-          netTradingPnl={report.net_pnl}
+          netTradingPnl={netPnl}
           operatingExpenses={operatingExpenses}
         />
       )}
@@ -144,7 +160,7 @@ export default function ReportView({
           />
           <div className="flex-1 grid grid-cols-2 gap-3 w-full">
             <SummaryStat label="Clean Trades" value={cleanTrades} tone="profit" />
-            <SummaryStat label="Rule Violations" value={report.rule_violations} tone="loss" />
+            <SummaryStat label="Rule Violations" value={ruleViolations} tone="loss" />
           </div>
         </div>
       </div>
