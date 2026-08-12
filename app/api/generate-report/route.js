@@ -103,11 +103,12 @@ Total Deposited: ₹${metrics.totalDeposited.toFixed(2)}
 Total Withdrawn: ₹${metrics.totalWithdrawn.toFixed(2)}
 Total Trading P&L: ₹${metrics.totalTradingPnl.toFixed(2)}
 Current Account Value: ₹${metrics.currentValue.toFixed(2)}
-Overall Return: ${metrics.overallReturn.toFixed(1)}%
+Trading Return: ${metrics.tradingReturn.toFixed(1)}% (trading P&L as a percentage of capital invested — not affected by withdrawals)
+Account Growth: ${metrics.accountGrowth.toFixed(1)}% (actual account size change since starting capital, including deposits and withdrawals)
 Peak Capital: ₹${metrics.peakCapital.toFixed(2)}
 Max Drawdown from Peak: ₹${metrics.drawdownAmount.toFixed(2)} (${metrics.drawdownPercent.toFixed(1)}%)
 
-Comment on whether the trader is building long-term wealth, whether withdrawals are sustainable relative to trading performance, and the trajectory of account growth. Keep this to 1-2 sentences and fold it into the TOP 3 WEAKNESSES section as context for one of the points, or into the goals section as context for one goal — do not create a separate standalone section for it, and do not let it run past 2 sentences.`;
+Note: Trading Return measures pure trading performance. Account Growth reflects the account's actual size change and will differ from Trading Return whenever the trader has deposited or withdrawn capital — a withdrawal is a capital movement, not a trading loss, so do not describe withdrawals as hurting performance. Comment on whether the trader is building long-term wealth, whether withdrawals are sustainable relative to trading performance, and the trajectory of account growth. Keep this to 1-2 sentences and fold it into the TOP 3 WEAKNESSES section as context for one of the points, or into the goals section as context for one goal — do not create a separate standalone section for it, and do not let it run past 2 sentences.`;
 }
 
 function buildPrompt(

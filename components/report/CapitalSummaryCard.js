@@ -48,9 +48,17 @@ export default function CapitalSummaryCard({ capital }) {
             bold
           />
           <Row
-            label="Overall Return"
-            value={`${capital.overallReturn >= 0 ? "+" : ""}${capital.overallReturn.toFixed(1)}%`}
-            tone={capital.overallReturn >= 0 ? "profit" : "loss"}
+            label="Trading Return"
+            hint="trading P&L vs capital invested — unaffected by withdrawals"
+            value={`${capital.tradingReturn >= 0 ? "+" : ""}${capital.tradingReturn.toFixed(1)}%`}
+            tone={capital.tradingReturn >= 0 ? "profit" : "loss"}
+            bold
+          />
+          <Row
+            label="Account Growth"
+            hint="account size change, including deposits and withdrawals"
+            value={`${capital.accountGrowth >= 0 ? "+" : ""}${capital.accountGrowth.toFixed(1)}%`}
+            tone={capital.accountGrowth >= 0 ? "profit" : "loss"}
             bold
           />
           <Row label="Peak Capital" value={formatCurrency(capital.peakCapital)} />
@@ -65,19 +73,22 @@ export default function CapitalSummaryCard({ capital }) {
   );
 }
 
-function Row({ label, value, tone, bold }) {
+function Row({ label, value, tone, bold, hint }) {
   const toneClass =
     tone === "profit" ? "text-profit" : tone === "loss" ? "text-loss" : "text-text-primary";
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className={`text-body ${bold ? "font-medium text-text-primary" : "text-text-secondary"}`}>
-        {label}
-      </span>
-      <span
-        className={`font-mono ${bold ? "text-h3 font-semibold" : "text-body font-semibold"} ${toneClass}`}
-      >
-        {value}
-      </span>
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <span className={`text-body ${bold ? "font-medium text-text-primary" : "text-text-secondary"}`}>
+          {label}
+        </span>
+        <span
+          className={`font-mono ${bold ? "text-h3 font-semibold" : "text-body font-semibold"} ${toneClass}`}
+        >
+          {value}
+        </span>
+      </div>
+      {hint && <p className="text-small text-text-muted mt-0.5">{hint}</p>}
     </div>
   );
 }

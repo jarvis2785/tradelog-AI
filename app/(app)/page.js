@@ -223,20 +223,20 @@ export default function DashboardPage() {
                   raw={!capital.hasStartingCapital ? "—" : undefined}
                   subLabel={
                     capital.hasStartingCapital
-                      ? `${formatCurrency(capital.currentValue - capital.startingCapital)} return (${
-                          capital.overallReturn >= 0 ? "+" : ""
-                        }${capital.overallReturn.toFixed(1)}%)`
+                      ? `Trading P&L: ${formatCurrency(capital.totalTradingPnl)} (${
+                          capital.tradingReturn >= 0 ? "+" : ""
+                        }${capital.tradingReturn.toFixed(1)}%)`
                       : "Set up in Accounts"
                   }
                 />
                 <StatCard
-                  label="Overall Return"
-                  value={capital.hasStartingCapital ? capital.overallReturn : 0}
+                  label="Trading Return"
+                  value={capital.hasStartingCapital ? capital.tradingReturn : 0}
                   formatter={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`}
                   tone={
                     !capital.hasStartingCapital
                       ? "neutral"
-                      : capital.overallReturn >= 0
+                      : capital.tradingReturn >= 0
                       ? "profit"
                       : "loss"
                   }
