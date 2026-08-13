@@ -72,7 +72,12 @@ export default function AccountsPage() {
     <div className="flex flex-col gap-5 pb-6">
       <h1 className="text-h1 text-text-primary">Accounts</h1>
 
-      <CapitalOverview metrics={capital} />
+      <CapitalOverview
+        metrics={capital}
+        onEditStartingCapital={() =>
+          setEditingTx(capital.transactions.find((t) => t.type === "initial_capital"))
+        }
+      />
 
       <div className="card">
         <h3 className="text-h3 text-text-primary mb-1">Account Value Over Time</h3>

@@ -1,8 +1,9 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
-export default function CapitalOverview({ metrics }) {
+export default function CapitalOverview({ metrics, onEditStartingCapital }) {
   const {
     currentValue,
     startingCapital,
@@ -40,7 +41,11 @@ export default function CapitalOverview({ metrics }) {
           value={`${accountGrowth >= 0 ? "+" : ""}${accountGrowth.toFixed(1)}%`}
           tone={accountGrowth >= 0 ? "profit" : "loss"}
         />
-        <MetricTile label="Starting Capital" value={formatCurrency(startingCapital)} />
+        <MetricTile
+          label="Starting Capital"
+          value={formatCurrency(startingCapital)}
+          onEdit={onEditStartingCapital}
+        />
 
         <MetricTile label="Total Invested" value={formatCurrency(totalInvested)} />
         <MetricTile
@@ -63,12 +68,23 @@ export default function CapitalOverview({ metrics }) {
   );
 }
 
-function MetricTile({ label, hint, value, tone, large, className = "" }) {
+function MetricTile({ label, hint, value, tone, large, className = "", onEdit }) {
   const toneClass =
     tone === "profit" ? "text-profit" : tone === "loss" ? "text-loss" : "text-text-primary";
   return (
     <div className={`border border-border rounded-control px-3.5 py-3 ${className}`}>
-      <p className="text-small text-text-muted mb-1">{label}</p>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <p className="text-small text-text-muted">{label}</p>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="w-6 h-6 flex items-center justify-center rounded-control text-text-muted hover:text-text-primary hover:bg-overlay/[0.06] transition-colors shrink-0"
+            aria-label="Edit starting capital"
+          >
+            <Pencil size={12} />
+          </button>
+        )}
+      </div>
       <p
         className={`font-mono font-semibold truncate ${
           large ? "text-h3 sm:text-h2" : "text-body"
