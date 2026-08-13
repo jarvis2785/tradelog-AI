@@ -8,6 +8,7 @@ import { TX_TYPE_OPTIONS } from "./TransactionForm";
 const FIELD_LABEL = "block text-small text-text-secondary mb-1.5";
 
 export default function EditTransactionModal({ transaction, onClose, onSave }) {
+  const isInitial = transaction.type === "initial_capital";
   const [date, setDate] = useState(transaction.date);
   const [type, setType] = useState(transaction.type);
   const [amount, setAmount] = useState(String(transaction.amount ?? ""));
@@ -76,18 +77,24 @@ export default function EditTransactionModal({ transaction, onClose, onSave }) {
             </div>
             <div>
               <label className={FIELD_LABEL}>Transaction Type</label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="input-field h-11"
-                disabled={saving}
-              >
-                {TX_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              {isInitial ? (
+                <div className="input-field h-11 flex items-center text-text-muted">
+                  Initial Capital
+                </div>
+              ) : (
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  className="input-field h-11"
+                  disabled={saving}
+                >
+                  {TX_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className={FIELD_LABEL}>Amount ₹</label>

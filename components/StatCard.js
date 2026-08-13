@@ -32,7 +32,7 @@ export default function StatCard({
         style={{ background: borderColor }}
       />
       <p className="text-small text-text-secondary mb-2 truncate">{label}</p>
-      <p className="font-mono text-[22px] md:text-[26px] font-semibold text-text-primary tabular leading-tight truncate">
+      <p className="font-mono text-[22px] md:text-[26px] font-semibold text-text-primary tabular leading-tight whitespace-normal break-words">
         {raw !== undefined ? (
           raw
         ) : (
@@ -40,7 +40,7 @@ export default function StatCard({
         )}
       </p>
       {subLabel && (
-        <p className="text-small text-text-muted mt-1 truncate">{subLabel}</p>
+        <p className="text-small text-text-muted mt-1 whitespace-normal break-words">{subLabel}</p>
       )}
       {(trend !== undefined && trend !== null) && (
         <div

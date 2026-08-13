@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Pencil, Trash2, Lock, Wallet } from "lucide-react";
+import { Pencil, Trash2, Wallet } from "lucide-react";
 import { formatCurrency, toDDMMYYYY, classNames } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
 
@@ -122,14 +122,7 @@ export default function TransactionLedger({ transactions, netPnlByDate, onEdit, 
                       </td>
                       <td className="py-3 pl-3">
                         <div className="flex items-center justify-end gap-2">
-                          {isAuto ? null : isInitial ? (
-                            <span
-                              className="w-8 h-8 flex items-center justify-center text-text-muted"
-                              aria-label="Initial capital cannot be edited"
-                            >
-                              <Lock size={14} />
-                            </span>
-                          ) : (
+                          {isAuto ? null : (
                             <>
                               <button
                                 onClick={() => onEdit(item)}
@@ -138,13 +131,15 @@ export default function TransactionLedger({ transactions, netPnlByDate, onEdit, 
                               >
                                 <Pencil size={14} />
                               </button>
-                              <button
-                                onClick={() => onDelete(item)}
-                                className="w-8 h-8 flex items-center justify-center rounded-control border border-border text-text-secondary hover:text-loss hover:border-loss/40 transition-colors"
-                                aria-label="Delete transaction"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              {!isInitial && (
+                                <button
+                                  onClick={() => onDelete(item)}
+                                  className="w-8 h-8 flex items-center justify-center rounded-control border border-border text-text-secondary hover:text-loss hover:border-loss/40 transition-colors"
+                                  aria-label="Delete transaction"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>
@@ -196,30 +191,21 @@ export default function TransactionLedger({ transactions, netPnlByDate, onEdit, 
                   )}
                   {!isAuto && (
                     <div className="flex items-center justify-end gap-2 mt-2.5">
-                      {isInitial ? (
-                        <span
-                          className="w-9 h-9 flex items-center justify-center text-text-muted"
-                          aria-label="Initial capital cannot be edited"
+                      <button
+                        onClick={() => onEdit(item)}
+                        className="w-9 h-9 flex items-center justify-center rounded-control border border-border text-text-secondary active:text-text-primary transition-colors"
+                        aria-label="Edit transaction"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      {!isInitial && (
+                        <button
+                          onClick={() => onDelete(item)}
+                          className="w-9 h-9 flex items-center justify-center rounded-control border border-border text-text-secondary active:text-loss transition-colors"
+                          aria-label="Delete transaction"
                         >
-                          <Lock size={15} />
-                        </span>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => onEdit(item)}
-                            className="w-9 h-9 flex items-center justify-center rounded-control border border-border text-text-secondary active:text-text-primary transition-colors"
-                            aria-label="Edit transaction"
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          <button
-                            onClick={() => onDelete(item)}
-                            className="w-9 h-9 flex items-center justify-center rounded-control border border-border text-text-secondary active:text-loss transition-colors"
-                            aria-label="Delete transaction"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </>
+                          <Trash2 size={15} />
+                        </button>
                       )}
                     </div>
                   )}

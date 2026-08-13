@@ -34,7 +34,7 @@ export default function AccountsPage() {
   }
 
   async function handleConfirmDelete() {
-    if (!deletingTx) return;
+    if (!deletingTx || deletingTx.type === "initial_capital") return;
     setDeleting(true);
     try {
       const { error } = await supabase.from(CAPITAL_TABLE).delete().eq("id", deletingTx.id);
